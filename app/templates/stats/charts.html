@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Графики{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Графики доходов и расходов</h1>
+</div>
+
+<div class="filters">
+    <div class="form-row">
+        <label>
+            Тип операции
+            <select id="filter-kind">
+                <option value="all">Все</option>
+                <option value="income">Доход</option>
+                <option value="expense">Расход</option>
+            </select>
+        </label>
+        <label>
+            Категория
+            <select id="filter-category">
+                <option value="">Все категории</option>
+            </select>
+        </label>
+        <label>
+            С даты
+            <input type="date" id="filter-date-from">
+        </label>
+        <label>
+            По дату
+            <input type="date" id="filter-date-to">
+        </label>
+        <label>
+            Способ оплаты
+            <select id="filter-payment">
+                <option value="">Все</option>
+            </select>
+        </label>
+    </div>
+    <div class="form-actions">
+        <button class="btn btn-primary" id="btn-apply">Применить</button>
+    </div>
+</div>
+
+<div class="form-card">
+    <div class="form-row" style="justify-content: space-around; text-align: center;">
+        <div>
+            <div class="muted">Доход</div>
+            <h2 id="total-income">0,00</h2>
+        </div>
+        <div>
+            <div class="muted">Расход</div>
+            <h2 id="total-expense">0,00</h2>
+        </div>
+        <div>
+            <div class="muted">Баланс</div>
+            <h2 id="total-balance">0,00</h2>
+        </div>
+    </div>
+</div>
+
+<div id="no-data" class="placeholder hidden">
+    <p>Нет данных для выбранных фильтров.</p>
+</div>
+
+<div id="charts-container">
+    <div class="form-card">
+        <h2>Динамика по периодам</h2>
+        <canvas id="period-chart"></canvas>
+    </div>
+
+    <div class="two-columns">
+        <div class="form-card">
+            <h2>Структура по категориям</h2>
+            <canvas id="category-chart"></canvas>
+        </div>
+        <div class="form-card">
+            <h2>Структура доходов по способам оплаты</h2>
+            <canvas id="payment-chart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/static/js/charts.js"></script>
+{% endblock %}

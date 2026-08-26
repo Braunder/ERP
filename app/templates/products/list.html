@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Продукты{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Продукты</h1>
+</div>
+
+<form method="post" action="/products" class="form-card">
+    <h2>Добавить продукт</h2>
+    <div class="form-row">
+        <label>Название
+            <input type="text" name="name" required>
+        </label>
+        <label>Единица
+            <input type="text" name="unit" value="шт">
+        </label>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </div>
+</form>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Единица</th>
+                <th>Активен</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.name }}</td>
+                <td>{{ product.unit }}</td>
+                <td>{{ 'Да' if product.is_active else 'Нет' }}</td>
+                <td class="actions">
+                    <button type="button" class="btn btn-small" onclick="document.getElementById('edit-product-{{ product.id }}').classList.toggle('hidden')">Изменить</button>
+                    <form method="post" action="/products/{{ product.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                        <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="edit-product-{{ product.id }}" class="edit-row hidden">
+                <td colspan="4">
+                    <form method="post" action="/products/{{ product.id }}" class="form-card inline-edit">
+                        <div class="form-row">
+                            <label>Название
+                                <input type="text" name="name" value="{{ product.name }}" required>
+                            </label>
+                            <label>Единица
+                                <input type="text" name="unit" value="{{ product.unit }}">
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="is_active" {% if product.is_active %}checked{% endif %}> Активен
+                            </label>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

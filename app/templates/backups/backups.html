@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Бэкапы{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Резервное копирование базы данных</h1>
+</div>
+
+{% if restored %}
+<div class="alert alert-success">
+    База данных успешно восстановлена из резервной копии.
+</div>
+{% endif %}
+
+<div class="form-card">
+    <form action="/backups/create" method="post">
+        <button type="submit" class="btn btn-primary">Создать копию сейчас</button>
+    </form>
+</div>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Имя файла</th>
+                <th>Дата создания</th>
+                <th class="numeric">Размер</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for backup in backups %}
+            <tr>
+                <td>{{ backup.filename }}</td>
+                <td>{{ backup.created_at[:10] }} {{ backup.created_at[11:19] }}</td>
+                <td class="numeric">{{ "%.2f"|format(backup.size_bytes / 1024) }} КБ</td>
+                <td>
+                    <form action="/backups/restore/{{ backup.filename }}" method="post" class="inline-form"
+                          onsubmit="return confirm('Восстановить БД из копии {{ backup.filename }}? Текущие данные будут перезаписаны.');">
+                        <button type="submit" class="btn btn-warning">Восстановить</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="empty">Резервные копии отсутствуют</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="alert alert-warning" style="margin-top: 1.5rem;">
+    <strong>Внимание:</strong> восстановление из резервной копии полностью заменяет текущую базу данных.
+    После восстановления рекомендуется перезапустить приложение.
+</div>
+{% endblock %}

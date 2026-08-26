@@ -1,0 +1,5878 @@
+# .env
+# Подключение к БД (SQLite по умолчанию)
+DATABASE_URL=sqlite:///data/app.db
+
+# Пароль админ-панели
+ADMIN_PASSWORD=admin
+
+# Секретный ключ подписи сессий (сгенерируйте свой для прода)
+SECRET_KEY=change-me-in-production
+
+# Google Sheets (фаза 3)
+GOOGLE_SA_FILE=gen-lang-client-0103225655-395c3c364797.json
+GOOGLE_SPREADSHEET_ID=1gtg_lNMGYM1_SAWgAEB4Cvb2UFIaZb6LgcTCG7k1KLo
+SYNC_ENABLED=true
+SYNC_SCHEDULE="0 2 * * *"
+
+# Резервное копирование (фаза 4)
+BACKUP_DIR=backups
+BACKUP_KEEP=7
+BACKUP_SCHEDULE=0 3 * * *
+
+
+# .env.example
+# Подключение к БД (SQLite по умолчанию)
+DATABASE_URL=sqlite:///data/app.db
+
+# Пароль админ-панели
+ADMIN_PASSWORD=admin
+
+# Секретный ключ подписи сессий (сгенерируйте свой для прода)
+SECRET_KEY=change-me-in-production
+
+# Google Sheets (фаза 3)
+GOOGLE_SA_FILE=gen-lang-client-0103225655-395c3c364797.json
+GOOGLE_SPREADSHEET_ID=
+SYNC_ENABLED=false
+SYNC_SCHEDULE="0 2 * * *"
+
+# Резервное копирование (фаза 4)
+BACKUP_DIR=backups
+BACKUP_KEEP=7
+BACKUP_SCHEDULE=0 3 * * *
+
+
+# .gitignore
+# Виртуальное окружение
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Данные приложения
+data/
+logs/
+
+# Переменные окружения и секреты
+.env
+gen-lang-client-*.json
+
+
+# alembic.ini
+# A generic, single database configuration.
+
+[alembic]
+# path to migration scripts.
+# this is typically a path given in POSIX (e.g. forward slashes)
+# format, relative to the token %(here)s which refers to the location of this
+# ini file
+script_location = %(here)s/alembic
+
+# template used to generate migration file names; The default value is %%(rev)s_%%(slug)s
+# Uncomment the line below if you want the files to be prepended with date and time
+# see https://alembic.sqlalchemy.org/en/latest/tutorial.html#editing-the-ini-file
+# for all available tokens
+# file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s
+# Or organize into date-based subdirectories (requires recursive_version_locations = true)
+# file_template = %%(year)d/%%(month).2d/%%(day).2d_%%(hour).2d%%(minute).2d_%%(second).2d_%%(rev)s_%%(slug)s
+
+# sys.path path, will be prepended to sys.path if present.
+# defaults to the current working directory.  for multiple paths, the path separator
+# is defined by "path_separator" below.
+prepend_sys_path = .
+
+
+# timezone to use when rendering the date within the migration file
+# as well as the filename.
+# If specified, requires the tzdata library which can be installed by adding
+# `alembic[tz]` to the pip requirements.
+# string value is passed to ZoneInfo()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version location specification; This defaults
+# to <script_location>/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path.
+# The path separator used here should be the separator specified by "path_separator"
+# below.
+# version_locations = %(here)s/bar:%(here)s/bat:%(here)s/alembic/versions
+
+# path_separator; This indicates what character is used to split lists of file
+# paths, including version_locations and prepend_sys_path within configparser
+# files such as alembic.ini.
+# The default rendered in new alembic.ini files is "os", which uses os.pathsep
+# to provide os-dependent path splitting.
+#
+# Note that in order to support legacy alembic.ini files, this default does NOT
+# take place if path_separator is not present in alembic.ini.  If this
+# option is omitted entirely, fallback logic is as follows:
+#
+# 1. Parsing of the version_locations option falls back to using the legacy
+#    "version_path_separator" key, which if absent then falls back to the legacy
+#    behavior of splitting on spaces and/or commas.
+# 2. Parsing of the prepend_sys_path option falls back to the legacy
+#    behavior of splitting on spaces, commas, or colons.
+#
+# Valid values for path_separator are:
+#
+# path_separator = :
+# path_separator = ;
+# path_separator = space
+# path_separator = newline
+#
+# Use os.pathsep. Default configuration used for new projects.
+path_separator = os
+
+# set to 'true' to search source files recursively
+# in each "version_locations" directory
+# new in Alembic version 1.10
+# recursive_version_locations = false
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+# database URL.  This is consumed by the user-maintained env.py script only.
+# other means of configuring database URLs may be customized within the env.py
+# file.
+sqlalchemy.url = sqlite:///data/app.db
+
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks = black
+# black.type = console_scripts
+# black.entrypoint = black
+# black.options = -l 79 REVISION_SCRIPT_FILENAME
+
+# lint with attempts to fix using "ruff" - use the module runner, against the "ruff" module
+# hooks = ruff
+# ruff.type = module
+# ruff.module = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Alternatively, use the exec runner to execute a binary found on your PATH
+# hooks = ruff
+# ruff.type = exec
+# ruff.executable = ruff
+# ruff.options = check --fix REVISION_SCRIPT_FILENAME
+
+# Logging configuration.  This is also consumed by the user-maintained
+# env.py script only.
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARNING
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARNING
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S
+
+
+# README.md
+# ERP — учёт доходов и расходов
+
+FastAPI MVP для учёта доходов и расходов небольшого бизнеса: лавка, ужины, доставка, аренда и другие операции.
+
+Приложение позволяет вести справочники категорий, поставщиков, продуктов и сотрудников, создавать доходные и расходные операции с детализацией по продуктам, смотреть отчёты и графики, а также выгружать данные в Google Sheets и автоматически создавать резервные копии SQLite-базы.
+
+## Фазы проекта
+
+- **Фаза 1**: справочники, операции, авторизация, тесты, alembic.
+- **Фаза 2**: множественные продукты в операции, закупочные цены, поиск/фильтры.
+- **Фаза 3**: интеграция Google Sheets, графики и отчёты.
+- **Фаза 4**: резервное копирование, health-check, функциональное E2E-тестирование, инструкция по деплою.
+
+## Требования
+
+- Python 3.11+
+- SQLite (используется по умолчанию)
+- Опционально: аккаунт Google Cloud с сервисным аккаунтом для синхронизации с Google Sheets
+
+## Локальный запуск
+
+1. Скопируйте пример настроек:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Создайте виртуальное окружение и установите зависимости:
+   ```bash
+   python -m venv .venv
+   .venv/Scripts/pip install -r requirements.txt
+   ```
+
+3. Примените миграции (опционально, приложение также создаёт таблицы при старте):
+   ```bash
+   .venv/Scripts/alembic upgrade head
+   ```
+
+4. Запустите сервер:
+   ```bash
+   .venv/Scripts/python run.py
+   ```
+
+5. Откройте в браузере: http://localhost:8000
+
+   Пароль по умолчанию: `admin` (задаётся в `.env` через `ADMIN_PASSWORD`).
+
+## Переменные окружения
+
+| Переменная             | Описание                                                            | Значение по умолчанию                                  |
+|------------------------|---------------------------------------------------------------------|--------------------------------------------------------|
+| `ADMIN_PASSWORD`       | Пароль для входа в веб-интерфейс                                    | `admin`                                                |
+| `SECRET_KEY`           | Секретный ключ подписи сессионной cookie                            | `change-me-in-production`                              |
+| `DATABASE_URL`         | URL подключения к БД (поддерживается SQLite)                        | `sqlite:///data/app.db`                                |
+| `GOOGLE_SA_FILE`       | Путь к JSON-файлу сервисного аккаунта Google                        | `gen-lang-client-0103225655-395c3c364797.json`         |
+| `GOOGLE_SPREADSHEET_ID`| ID Google Таблицы для синхронизации                                 | ``                                                     |
+| `SYNC_ENABLED`         | Включить автоматическую синхронизацию с Google Sheets               | `false`                                                |
+| `SYNC_SCHEDULE`        | Расписание синхронизации в формате cron                             | `0 2 * * *`                                            |
+| `BACKUP_DIR`           | Каталог для хранения резервных копий БД                             | `backups`                                              |
+| `BACKUP_KEEP`          | Количество хранимых резервных копий                                 | `7`                                                    |
+| `BACKUP_SCHEDULE`      | Расписание автоматического бэкапа в формате cron                    | `0 3 * * *`                                            |
+
+## Google Sheets
+
+1. В [Google Cloud Console](https://console.cloud.google.com/) создайте сервисный аккаунт и скачайте JSON-ключ.
+2. Укажите путь к JSON в `GOOGLE_SA_FILE` (относительно корня проекта).
+3. Скопируйте `client_email` из JSON-файла.
+4. Откройте нужную Google Таблицу и добавьте этот email с правами **Редактор** через кнопку "Настройки доступа".
+5. Скопируйте ID таблицы из URL (`https://docs.google.com/spreadsheets/d/{ID}/edit`) в `GOOGLE_SPREADSHEET_ID`.
+6. Установите `SYNC_ENABLED=true` и, при необходимости, измените `SYNC_SCHEDULE`.
+
+### Формат выгружаемого отчёта
+
+Синхронизация формирует лист **"Отчет"** в формате P&L (доходы/расходы/прибыль) по месяцам:
+
+- **Выручка всего** и разбивка по группам (лавка, кейтеринг, аренда, комиссия).
+- **Прямые расходы всего** с детализацией по статьям.
+- **Накладные расходы всего** с детализацией по статьям.
+- **Налоги и сборы**.
+- **Прибыль** и **прибыль итого** (накопительный итог).
+- **Инвестиции** (пустая строка для ручного заполнения).
+
+Для каждого месяца выводятся два столбца: **сумма** и **% от выручки**. Доходы и расходы группируются по полю **"Группа отчёта"** в карточке категории (`/categories`).
+
+Основные группы отчёта:
+
+| Группа | Раздел отчёта |
+|--------|---------------|
+| `revenue_lavka` | Выручка лавка |
+| `revenue_catering` | Выручка кейтеринг |
+| `revenue_rent` | Выручка аренда |
+| `revenue_commission` | Выручка комиссия |
+| `direct_*` | Прямые расходы |
+| `overhead_*` | Накладные расходы |
+| `taxes` | Налоги и сборы |
+
+Если категория не привязана ни к одной группе, она не попадает в отчёт, но остаётся в операциях и графиках.
+
+## Деплой на VPS
+
+### Systemd unit
+
+Создайте файл `/etc/systemd/system/erp.service`:
+
+```ini
+[Unit]
+Description=ERP FastAPI application
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/erp
+Environment="PATH=/opt/erp/.venv/bin"
+EnvironmentFile=/opt/erp/.env
+ExecStart=/opt/erp/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Затем:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now erp
+```
+
+### Nginx reverse proxy
+
+Пример конфигурации `/etc/nginx/sites-available/erp`:
+
+```nginx
+server {
+    listen 80;
+    server_name erp.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Активируйте конфигурацию:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/erp /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Health-check
+
+Приложение отвечает на `GET /health`:
+
+```json
+{"status": "ok", "database": "ok"}
+```
+
+При недоступности БД возвращается HTTP 503:
+
+```json
+{"status": "error", "database": "error", "detail": "..."}
+```
+
+Используйте `/health` для мониторинга и в load balancer.
+
+## Резервное копирование
+
+Автоматическое резервное копирование SQLite-БД запускается по расписанию `BACKUP_SCHEDULE` (по умолчанию ежедневно в 03:00). Копии сохраняются в каталог `BACKUP_DIR` с именами вида `app_YYYYMMDD_HHMMSS.db`.
+
+Ротация оставляет не более `BACKUP_KEEP` последних копий.
+
+Ручное управление доступно в веб-интерфейсе по адресу `/backups` и через API `GET /api/backups`.
+
+### Восстановление из бэкапа
+
+1. Остановите приложение:
+   ```bash
+   sudo systemctl stop erp
+   ```
+2. Скопируйте нужную резервную копию на место текущей БД:
+   ```bash
+   cp backups/app_20240115_030000.db data/app.db
+   ```
+3. Запустите приложение:
+   ```bash
+   sudo systemctl start erp
+   ```
+
+Также восстановление можно выполнить через веб-интерфейс `/backups` — нажмите кнопку "Восстановить" напротив нужной копии и подтвердите перезапись БД.
+
+## Структура
+
+- `app/main.py` — точка входа FastAPI.
+- `app/routers/` — HTML- и API-роутеры.
+- `app/models.py` — модели SQLAlchemy.
+- `app/seed.py` — начальные категории и сотрудники.
+- `app/templates/` — Jinja2-шаблоны.
+- `app/static/` — CSS/JS.
+- `alembic/` — миграции базы данных.
+- `tests/` — pytest-тесты.
+
+## Тесты
+
+```bash
+.venv/Scripts/python -m pytest -q
+```
+
+
+# run.py
+"""Запуск uvicorn для разработки."""
+import uvicorn
+
+
+if __name__ == "__main__":
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8888, reload=True)
+
+
+# TODO.md
+# TODO: Web-система учёта доходов и расходов (MVP)
+
+## Фаза 1: Инфраструктура и структура данных
+
+- [ ] Развёртывание FastAPI: структура проекта, зависимости, env, логирование, CORS, базовые роуты
+- [ ] Модели данных (SQLAlchemy): операции, категории, поставщики, продукты, сотрудники, история изменений. Миграции
+- [ ] Наполнение справочников фиксированной структурой категорий доходов и расходов (по согласованной схеме)
+- [ ] Базовая админ-панель для просмотра и первичного редактирования данных
+
+## Фаза 2: Web-интерфейс занесения и редактирования
+
+- [ ] Форма занесения операции с динамическими полями: тип/подтип категории, подтип «Аренды», количество гостей (кроме аренды), способ оплаты
+- [ ] Мульти-ввод продуктов: список из нескольких строк (наименование, цена, кол-во/вес) в одном окне без повторного открытия формы
+- [ ] Поле «Комментарий» для всех статей доходов/расходов; логика статьи «Списания → Съели сами» (выбор Ира/Илья); категория дохода «Открытые события»
+- [ ] Раздел «Редактирование»: правка внесённых операций, CRUD справочников категорий, поставщиков, продуктов и сотрудников
+- [ ] Адаптивная вёрстка интерфейса под мобильные устройства
+
+## Фаза 3: Графики и синхронизация с Google Таблицей
+
+- [ ] Графики доходов/расходов с фильтрами по типу, категории, периоду и способу оплаты (Chart.js)
+- [ ] Интеграция Google Sheets API: сервисный аккаунт, подключение к таблице Заказчика
+- [ ] Логика односторонней синхронизации Web → Google Таблица (по кнопке и/или по расписанию), логирование операций
+- [ ] Обработка ошибок синхронизации (недоступность API, превышение лимитов запросов)
+
+## Фаза 4: Резервное копирование, тестирование и запуск
+
+- [ ] Автоматическое резервное копирование базы данных по расписанию, хранение N последних копий
+- [ ] Health-check эндпоинт / базовая проверка доступности сервиса (VPS)
+- [ ] Функциональное тестирование (E2E): занесение → редактирование → графики → синхронизация
+- [ ] Исправление ошибок по итогам тестирования
+- [ ] Деплой на VPS / хостинг Заказчика, передача доступов и краткой инструкции
+
+## Дополнительные требования (из функциональных блоков)
+
+### Занесение сумм
+- [ ] Выбор типа операции: Доход / Расход
+- [ ] Для Дохода — выбор категории: Лавка, Ужины/Обеды, Выездные мероприятия, Открытые события, Доставка продуктов, Комиссия, Аренда
+- [ ] Для категории «Аренда» — дополнительный выбор подтипа: Оборудование, Посуда, Площадка
+- [ ] Для всех категорий Дохода, кроме «Аренды» — поле ввода количества гостей
+- [ ] Способ оплаты (для Дохода): Нал, Б/Нал, Перевод
+- [ ] Для Расхода — выбор категории по утверждённой многоуровневой структуре, включая подкатегории с выбором поставщика, товара, сотрудника и т.д.
+- [ ] Для статьи «Списания → Съели сами» — выбор ответственного: Ира / Илья
+- [ ] Поле «Сумма» — числовое, обязательное
+- [ ] Поле «Комментарий» — текстовое, необязательное (для всех статей)
+
+### Редактирование
+- [ ] Просмотр и правка ранее внесённых доходов и расходов
+- [ ] Добавление новых типов дохода/расхода (расширение справочника категорий)
+- [ ] Управление списком поставщиков (добавление / редактирование / удаление)
+- [ ] Управление каталогом продуктов и закупочных цен по поставщикам
+- [ ] Управление списком сотрудников (для статьи «Зп сотрудники» и выбора «Съели сами»)
+
+### Графики
+- [ ] Визуализация доходов/расходов: динамика по периодам, разбивка по категориям
+- [ ] Фильтры: по типу операции (Доход/Расход), по категории, по периоду (диапазон дат), по способу оплаты
+
+### Синхронизация с Google Таблицей
+- [ ] Односторонняя выгрузка данных из Web-системы в Google Таблицу Заказчика — по кнопке «Синхронизировать» и/или по расписанию
+- [ ] Состав выгружаемых данных: дата, тип операции, категория, подкатегория, сумма, комментарий, количество гостей, способ оплаты
+
+### Резервное копирование
+- [ ] Автоматическое резервное копирование базы данных по расписанию (например, ежедневно)
+- [ ] Хранение заданного количества последних копий с возможностью восстановления
+
+### Проверка VPS / мониторинг
+- [ ] Health-check эндпоинт для проверки доступности сервиса
+- [ ] Базовое уведомление о недоступности сервиса — при технической возможности
+
+### Web-интерфейс
+- [ ] Единый адаптивный интерфейс, доступный с ПК и мобильных устройств через браузер
+- [ ] Базовая защита доступа паролем на уровне сервера (по согласованию; без многопользовательской авторизации/ролей в рамках MVP)
+
+# .pytest_cache\.gitignore
+# Created by pytest automatically.
+*
+
+
+# .pytest_cache\CACHEDIR.TAG
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by pytest.
+# For information about cache directory tags, see:
+#	https://bford.info/cachedir/spec.html
+
+
+# .pytest_cache\README.md
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+
+# alembic\env.py
+from logging.config import fileConfig
+
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+
+from alembic import context
+
+from app.config import settings
+from app.database import Base
+from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Product, ProductPrice, Supplier, SyncLog  # noqa: F401
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+# Interpret the config file for Python logging.
+# This line sets up loggers basically.
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+# Database URL и метаданные моделей
+target_metadata = Base.metadata
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+# other values from the config, defined by the needs of env.py,
+# can be acquired:
+# my_important_option = config.get_main_option("my_important_option")
+# ... etc.
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection, target_metadata=target_metadata
+        )
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()
+
+
+# alembic\README
+Generic single-database configuration.
+
+# alembic\script.py.mako
+"""${message}
+
+Revision ID: ${up_revision}
+Revises: ${down_revision | comma,n}
+Create Date: ${create_date}
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+${imports if imports else ""}
+
+# revision identifiers, used by Alembic.
+revision: str = ${repr(up_revision)}
+down_revision: Union[str, Sequence[str], None] = ${repr(down_revision)}
+branch_labels: Union[str, Sequence[str], None] = ${repr(branch_labels)}
+depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    ${upgrades if upgrades else "pass"}
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    ${downgrades if downgrades else "pass"}
+
+
+# alembic\versions\8aea4b9860c2_init.py
+"""init
+
+Revision ID: 8aea4b9860c2
+Revises: 
+Create Date: 2026-08-20 16:37:38.283835
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '8aea4b9860c2'
+down_revision: Union[str, Sequence[str], None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table('categories',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('kind', sa.String(length=10), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('parent_id', sa.Integer(), nullable=True),
+    sa.Column('requires_payment_method', sa.Boolean(), nullable=False),
+    sa.Column('requires_guests', sa.Boolean(), nullable=False),
+    sa.Column('requires_supplier', sa.Boolean(), nullable=False),
+    sa.Column('requires_products', sa.Boolean(), nullable=False),
+    sa.Column('requires_employee', sa.Boolean(), nullable=False),
+    sa.Column('requires_responsible', sa.Boolean(), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.ForeignKeyConstraint(['parent_id'], ['categories.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('change_log',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('entity', sa.String(length=50), nullable=False),
+    sa.Column('entity_id', sa.Integer(), nullable=False),
+    sa.Column('action', sa.String(length=10), nullable=False),
+    sa.Column('changes', sa.JSON(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('employees',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('role', sa.String(length=100), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('products',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('unit', sa.String(length=20), nullable=False),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('suppliers',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('contact', sa.String(length=300), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('operations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
+    sa.Column('kind', sa.String(length=10), nullable=False),
+    sa.Column('category_id', sa.Integer(), nullable=False),
+    sa.Column('amount', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('comment', sa.Text(), nullable=True),
+    sa.Column('guests_count', sa.Integer(), nullable=True),
+    sa.Column('payment_method', sa.String(length=20), nullable=True),
+    sa.Column('supplier_id', sa.Integer(), nullable=True),
+    sa.Column('employee_id', sa.Integer(), nullable=True),
+    sa.Column('responsible', sa.String(length=100), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
+    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ),
+    sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('product_prices',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('product_id', sa.Integer(), nullable=False),
+    sa.Column('supplier_id', sa.Integer(), nullable=False),
+    sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
+    sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('product_id', 'supplier_id', name='uq_product_supplier')
+    )
+    op.create_table('operation_items',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('operation_id', sa.Integer(), nullable=False),
+    sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.Column('name', sa.String(length=200), nullable=False),
+    sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('quantity', sa.Numeric(precision=10, scale=3), nullable=False),
+    sa.Column('unit', sa.String(length=20), nullable=False),
+    sa.ForeignKeyConstraint(['operation_id'], ['operations.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    # ### end Alembic commands ###
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('operation_items')
+    op.drop_table('product_prices')
+    op.drop_table('operations')
+    op.drop_table('suppliers')
+    op.drop_table('products')
+    op.drop_table('employees')
+    op.drop_table('change_log')
+    op.drop_table('categories')
+    # ### end Alembic commands ###
+
+
+# alembic\versions\8ef295c387db_add_category_report_group.py
+"""add category report_group
+
+Revision ID: 8ef295c387db
+Revises: 9a950ab26df7
+Create Date: 2026-08-20 17:32:23.828118
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '8ef295c387db'
+down_revision: Union[str, Sequence[str], None] = '9a950ab26df7'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.add_column('categories', sa.Column('report_group', sa.String(length=50), nullable=True))
+    # ### end Alembic commands ###
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_column('categories', 'report_group')
+    # ### end Alembic commands ###
+
+
+# alembic\versions\9a950ab26df7_add_sync_log_table.py
+"""add sync_log table
+
+Revision ID: 9a950ab26df7
+Revises: 8aea4b9860c2
+Create Date: 2026-08-20 16:48:49.176953
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = '9a950ab26df7'
+down_revision: Union[str, Sequence[str], None] = '8aea4b9860c2'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.create_table('sync_log',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('success', sa.Boolean(), nullable=False),
+    sa.Column('message', sa.Text(), nullable=False),
+    sa.Column('details', sa.JSON(), nullable=True),
+    sa.Column('records_count', sa.Integer(), nullable=True),
+    sa.PrimaryKeyConstraint('id'),
+    if_not_exists=True,
+    )
+    # ### end Alembic commands ###
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('sync_log', if_exists=True)
+    # ### end Alembic commands ###
+
+
+# app\config.py
+"""Настройки приложения, читаются из .env и переменных окружения."""
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore")
+
+    DATABASE_URL: str = "sqlite:///data/app.db"
+    ADMIN_PASSWORD: str = "admin"
+    SECRET_KEY: str = "change-me-in-production"
+
+    # Google Sheets (фаза 3)
+    GOOGLE_SA_FILE: str = "gen-lang-client-0103225655-395c3c364797.json"
+    GOOGLE_SPREADSHEET_ID: str = ""
+    SYNC_ENABLED: bool = False
+    SYNC_SCHEDULE: str = "0 2 * * *"
+
+    # Резервное копирование (фаза 4)
+    BACKUP_DIR: str = "backups"
+    BACKUP_KEEP: int = 7
+    BACKUP_SCHEDULE: str = "0 3 * * *"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()
+
+
+# app\database.py
+"""Подключение к базе данных: engine, сессии, Base."""
+from collections.abc import Generator
+from pathlib import Path
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+
+from app.config import settings
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+def _make_engine(url: str):
+    if url.startswith("sqlite"):
+        # Для относительного пути sqlite:///data/app.db создаём каталог заранее
+        db_path = url.replace("sqlite:///", "", 1)
+        if db_path not in (":memory:", "") and not Path(db_path).is_absolute():
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        return create_engine(url, connect_args={"check_same_thread": False})
+    return create_engine(url)
+
+
+engine = _make_engine(settings.DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# app\deps.py
+"""Общие зависимости FastAPI: авторизация и БД."""
+from collections.abc import Generator
+
+from fastapi import HTTPException, Request
+from itsdangerous import URLSafeSerializer, BadSignature
+from sqlalchemy.orm import Session
+
+from app.config import settings
+from app.database import get_db as _get_db
+
+
+# Ре-экспорт зависимости БД
+def get_db() -> Generator[Session, None, None]:
+    yield from _get_db()
+
+
+serializer = URLSafeSerializer(settings.SECRET_KEY, salt="erp-auth")
+
+
+def _is_authenticated(request: Request) -> bool:
+    session_cookie = request.cookies.get("session")
+    if not session_cookie:
+        return False
+    try:
+        data = serializer.loads(session_cookie)
+    except BadSignature:
+        return False
+    return isinstance(data, dict) and data.get("auth") is True
+
+
+async def require_auth(request: Request) -> None:
+    """Проверяет сессию. Для /api/* — 401, для HTML-роутов — редирект на /login."""
+    if _is_authenticated(request):
+        return
+
+    if request.url.path.startswith("/api/"):
+        raise HTTPException(status_code=401, detail="Требуется авторизация")
+
+    raise HTTPException(
+        status_code=302,
+        detail="Требуется авторизация",
+        headers={"Location": "/login"},
+    )
+
+
+# app\main.py
+"""Точка входа FastAPI: middleware, роутеры, события."""
+import logging
+import sys
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
+
+from app.database import Base
+from app.routers import auth, backups, categories, employees, health, operations, products, stats, suppliers, sync
+from app.seed import seed_db
+from app.services import scheduler as scheduler_module
+
+import app.database as database_module
+
+
+APP_DIR = Path(__file__).resolve().parent
+
+
+def _setup_logging() -> None:
+    log_dir = APP_DIR.parent / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "app.log"
+
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
+    file_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=5 * 1024 * 1024,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+
+_setup_logging()
+
+app = FastAPI(title="ERP учёт доходов/расходов")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
+
+app.include_router(auth.router)
+app.include_router(health.router)
+app.include_router(operations.router)
+app.include_router(categories.router)
+app.include_router(suppliers.router)
+app.include_router(products.router)
+app.include_router(employees.router)
+app.include_router(stats.router)
+app.include_router(sync.router)
+app.include_router(backups.router)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    Base.metadata.create_all(bind=database_module.engine)
+    db = database_module.SessionLocal()
+    try:
+        seed_db(db)
+    finally:
+        db.close()
+    scheduler_module.setup_scheduler()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    scheduler_module.shutdown_scheduler()
+
+
+@app.get("/")
+async def root() -> RedirectResponse:
+    return RedirectResponse(url="/operations", status_code=302)
+
+
+# app\models.py
+"""Модели данных SQLAlchemy 2.0 (typed mapped)."""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.database import Base
+
+
+class Category(Base):
+    """Категория дохода/расхода, многоуровневая (self FK)."""
+
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(10))  # "income" / "expense"
+    name: Mapped[str] = mapped_column(String(200))
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True)
+
+    # Флаги дополнительных полей формы операции
+    requires_payment_method: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_guests: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_supplier: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_products: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_employee: Mapped[bool] = mapped_column(Boolean, default=False)
+    requires_responsible: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Группа для отчёта P&L (например, revenue_lavka, direct_wages, overhead_delivery)
+    report_group: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+
+    parent: Mapped[Optional["Category"]] = relationship(remote_side=[id], back_populates="children")
+    children: Mapped[list["Category"]] = relationship(back_populates="parent", order_by="Category.id")
+    operations: Mapped[list["Operation"]] = relationship(back_populates="category")
+
+
+class Supplier(Base):
+    __tablename__ = "suppliers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    contact: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    product_prices: Mapped[list["ProductPrice"]] = relationship(back_populates="supplier", cascade="all, delete-orphan")
+    operations: Mapped[list["Operation"]] = relationship(back_populates="supplier")
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    unit: Mapped[str] = mapped_column(String(20), default="шт")  # шт/кг/л
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    prices: Mapped[list["ProductPrice"]] = relationship(back_populates="product", cascade="all, delete-orphan")
+    items: Mapped[list["OperationItem"]] = relationship(back_populates="product")
+
+
+class ProductPrice(Base):
+    """Закупочная цена продукта у конкретного поставщика."""
+
+    __tablename__ = "product_prices"
+    __table_args__ = (UniqueConstraint("product_id", "supplier_id", name="uq_product_supplier"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"))
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+
+    product: Mapped[Product] = relationship(back_populates="prices")
+    supplier: Mapped[Supplier] = relationship(back_populates="product_prices")
+
+
+class Employee(Base):
+    __tablename__ = "employees"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    role: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    operations: Mapped[list["Operation"]] = relationship(back_populates="employee")
+
+
+class Operation(Base):
+    """Операция дохода/расхода."""
+
+    __tablename__ = "operations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date)
+    kind: Mapped[str] = mapped_column(String(10))  # "income" / "expense"
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    guests_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    payment_method: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # cash/card/transfer
+    supplier_id: Mapped[Optional[int]] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
+    employee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("employees.id"), nullable=True)
+    responsible: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # для «Съели сами»: Ира/Илья
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    category: Mapped[Category] = relationship(back_populates="operations")
+    supplier: Mapped[Optional[Supplier]] = relationship(back_populates="operations")
+    employee: Mapped[Optional[Employee]] = relationship(back_populates="operations")
+    items: Mapped[list["OperationItem"]] = relationship(
+        back_populates="operation", cascade="all, delete-orphan", order_by="OperationItem.id"
+    )
+
+
+class OperationItem(Base):
+    """Строка продуктов внутри операции (мульти-ввод)."""
+
+    __tablename__ = "operation_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    operation_id: Mapped[int] = mapped_column(ForeignKey("operations.id", ondelete="CASCADE"))
+    product_id: Mapped[Optional[int]] = mapped_column(ForeignKey("products.id"), nullable=True)
+    name: Mapped[str] = mapped_column(String(200))  # снимок наименования
+    price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3))
+    unit: Mapped[str] = mapped_column(String(20), default="шт")
+
+    operation: Mapped[Operation] = relationship(back_populates="items")
+    product: Mapped[Optional[Product]] = relationship(back_populates="items")
+
+
+class ChangeLog(Base):
+    """История изменений сущностей (пишется в CRUD-роутерах)."""
+
+    __tablename__ = "change_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity: Mapped[str] = mapped_column(String(50))
+    entity_id: Mapped[int] = mapped_column(Integer)
+    action: Mapped[str] = mapped_column(String(10))  # create/update/delete
+    changes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class SyncLog(Base):
+    """Лог попыток синхронизации с Google Sheets."""
+
+    __tablename__ = "sync_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    success: Mapped[bool]
+    message: Mapped[str] = mapped_column(Text)
+    details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    records_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+
+# app\schemas.py
+"""Pydantic-схемы для API и валидации форм."""
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
+
+
+class CategoryBase(BaseModel):
+    name: str
+    kind: str
+    parent_id: int | None = None
+    requires_payment_method: bool = False
+    requires_guests: bool = False
+    requires_supplier: bool = False
+    requires_products: bool = False
+    requires_employee: bool = False
+    requires_responsible: bool = False
+    is_active: bool = True
+    report_group: str | None = None
+
+
+class CategoryCreate(CategoryBase):
+    pass
+
+
+class CategoryRead(CategoryBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    children: list["CategoryRead"] = []
+
+
+class SupplierBase(BaseModel):
+    name: str
+    contact: str | None = None
+    is_active: bool = True
+
+
+class SupplierCreate(SupplierBase):
+    pass
+
+
+class SupplierRead(SupplierBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class ProductBase(BaseModel):
+    name: str
+    unit: str = "шт"
+    is_active: bool = True
+
+
+class ProductCreate(ProductBase):
+    pass
+
+
+class ProductRead(ProductBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class ProductPriceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    product_id: int
+    supplier_id: int
+    price: Decimal
+
+
+class ProductWithPricesRead(ProductRead):
+    prices: list[ProductPriceRead] = []
+
+
+class EmployeeBase(BaseModel):
+    name: str
+    role: str | None = None
+    is_active: bool = True
+
+
+class EmployeeCreate(EmployeeBase):
+    pass
+
+
+class EmployeeRead(EmployeeBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class OperationItemBase(BaseModel):
+    product_id: int | None = None
+    name: str
+    price: Decimal
+    quantity: Decimal
+    unit: str = "шт"
+
+
+class OperationItemCreate(OperationItemBase):
+    pass
+
+
+class OperationItemRead(OperationItemBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+
+class OperationBase(BaseModel):
+    date: date
+    kind: str
+    category_id: int
+    amount: Decimal
+    comment: str | None = None
+    guests_count: int | None = None
+    payment_method: str | None = None
+    supplier_id: int | None = None
+    employee_id: int | None = None
+    responsible: str | None = None
+
+
+class OperationCreate(OperationBase):
+    items: list[OperationItemCreate] = []
+
+
+class OperationRead(OperationBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    category: CategoryRead | None = None
+    supplier: SupplierRead | None = None
+    employee: EmployeeRead | None = None
+    items: list[OperationItemRead] = []
+
+
+class CategorySummary(BaseModel):
+    category_id: int
+    category_name: str
+    kind: str
+    total: Decimal
+
+
+class StatsSummary(BaseModel):
+    income: Decimal
+    expense: Decimal
+    balance: Decimal
+    by_category: list[CategorySummary]
+
+
+class PeriodStat(BaseModel):
+    period: str
+    income: Decimal
+    expense: Decimal
+
+
+class CategoryStat(BaseModel):
+    category: str
+    kind: str
+    amount: Decimal
+
+
+class PaymentStat(BaseModel):
+    payment_method: str
+    label: str
+    amount: Decimal
+
+
+class StatsData(BaseModel):
+    totals: dict[str, str]
+    by_period: list[PeriodStat]
+    by_category: list[CategoryStat]
+    by_payment: list[PaymentStat]
+
+
+class SyncLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime
+    success: bool
+    message: str
+    details: dict | None = None
+    records_count: int | None = None
+
+
+# app\seed.py
+"""Идемпотентное заполнение справочников категорий и сотрудников."""
+from sqlalchemy.orm import Session
+
+from app.models import Category, Employee
+
+
+def _get_or_create_category(
+    session: Session,
+    name: str,
+    kind: str,
+    parent: Category | None = None,
+    report_group: str | None = None,
+    requires_payment_method: bool = False,
+    requires_guests: bool = False,
+    requires_supplier: bool = False,
+    requires_products: bool = False,
+    requires_employee: bool = False,
+    requires_responsible: bool = False,
+) -> Category:
+    query = session.query(Category).filter_by(name=name, kind=kind)
+    if parent is None:
+        query = query.filter(Category.parent_id.is_(None))
+    else:
+        query = query.filter_by(parent_id=parent.id)
+
+    category = query.first()
+    if category:
+        # Обновляем маппинг отчёта при изменении справочника
+        if report_group is not None and category.report_group != report_group:
+            category.report_group = report_group
+        return category
+
+    category = Category(
+        name=name,
+        kind=kind,
+        parent_id=parent.id if parent else None,
+        report_group=report_group,
+        requires_payment_method=requires_payment_method,
+        requires_guests=requires_guests,
+        requires_supplier=requires_supplier,
+        requires_products=requires_products,
+        requires_employee=requires_employee,
+        requires_responsible=requires_responsible,
+    )
+    session.add(category)
+    session.flush()
+    return category
+
+
+def _get_or_create_employee(session: Session, name: str) -> Employee:
+    employee = session.query(Employee).filter_by(name=name).first()
+    if employee:
+        return employee
+    employee = Employee(name=name)
+    session.add(employee)
+    session.flush()
+    return employee
+
+
+def seed_db(session: Session) -> None:
+    """Создаёт категории и сотрудников, если их ещё нет."""
+    # Доходы
+    income_categories = [
+        ("Лавка", {"report_group": "revenue_lavka", "requires_guests": True}),
+        ("Ужины/Обеды", {"report_group": "revenue_catering", "requires_guests": True}),
+        ("Выездные мероприятия", {"report_group": "revenue_catering", "requires_guests": True}),
+        ("Открытые события", {"report_group": "revenue_catering", "requires_guests": True}),
+        ("Доставка продуктов", {"report_group": "revenue_catering", "requires_guests": True}),
+        ("Комиссия", {"report_group": "revenue_commission", "requires_guests": True}),
+        ("Аренда", {"report_group": "revenue_rent", "requires_guests": False}),
+    ]
+
+    for name, flags in income_categories:
+        _get_or_create_category(
+            session,
+            name=name,
+            kind="income",
+            requires_payment_method=True,
+            **flags,
+        )
+
+    # Дочерние категории доходов (аренда)
+    arenda = _get_or_create_category(
+        session,
+        name="Аренда",
+        kind="income",
+        report_group="revenue_rent",
+        requires_payment_method=True,
+        requires_guests=False,
+    )
+    for child_name in ("Оборудование", "Посуда", "Площадка"):
+        _get_or_create_category(
+            session,
+            name=child_name,
+            kind="income",
+            parent=arenda,
+            report_group="revenue_rent",
+            requires_payment_method=True,
+            requires_guests=False,
+        )
+
+    # Расходы — закупка продуктов
+    zakupka = _get_or_create_category(
+        session,
+        name="Закупка продуктов",
+        kind="expense",
+        report_group="direct_products",
+        requires_supplier=True,
+        requires_products=True,
+    )
+    for child_name in (
+        "Мясо и рыба",
+        "Овощи и фрукты",
+        "Бакалея",
+        "Молочные продукты",
+        "Напитки",
+        "Хозтовары",
+    ):
+        _get_or_create_category(
+            session,
+            name=child_name,
+            kind="expense",
+            parent=zakupka,
+            report_group="direct_products",
+            requires_supplier=True,
+            requires_products=True,
+        )
+
+    # Остальные прямые расходы
+    direct_expenses = [
+        ("Себестоимость кейтеринга", {"report_group": "direct_catering_cost"}),
+        ("Корм для животных", {"report_group": "direct_animal_feed"}),
+        ("Бензин", {"report_group": "direct_gas"}),
+        ("Служебное питание", {"report_group": "direct_meals"}),
+        ("Зарплата сотрудникам", {"report_group": "direct_wages", "requires_employee": True}),
+        ("Опреционные расходы", {"report_group": "direct_operational"}),
+        ("Прочие прямые расходы", {"report_group": "direct_other"}),
+    ]
+    for name, flags in direct_expenses:
+        _get_or_create_category(
+            session,
+            name=name,
+            kind="expense",
+            **flags,
+        )
+
+    # Накладные расходы
+    overhead_expenses = [
+        ("Эквайринг", {"report_group": "overhead_equaring"}),
+        ("Доставка и логистика", {"report_group": "overhead_delivery"}),
+        ("WiFi", {"report_group": "overhead_wifi"}),
+        ("Комиссия банка", {"report_group": "overhead_bank"}),
+        ("ИТ", {"report_group": "overhead_it"}),
+        ("Коммунальные платежи", {"report_group": "overhead_electricity"}),
+        ("Финансы", {"report_group": "overhead_finance"}),
+        ("Маркетинг", {"report_group": "overhead_marketing"}),
+        ("Оборудование и инвентарь", {"report_group": "overhead_equipment"}),
+        ("Аренда помещения", {"report_group": "overhead_rent"}),
+        ("Прочие накладные расходы", {"report_group": "overhead_other"}),
+    ]
+    for name, flags in overhead_expenses:
+        _get_or_create_category(
+            session,
+            name=name,
+            kind="expense",
+            **flags,
+        )
+
+    # Списания
+    spisaniya = _get_or_create_category(
+        session,
+        name="Списания",
+        kind="expense",
+        report_group="direct_other",
+    )
+    _get_or_create_category(
+        session,
+        name="Съели сами",
+        kind="expense",
+        parent=spisaniya,
+        report_group="direct_other",
+        requires_responsible=True,
+    )
+    _get_or_create_category(
+        session,
+        name="Порча/просрочка",
+        kind="expense",
+        parent=spisaniya,
+        report_group="direct_other",
+    )
+
+    # Налоги
+    _get_or_create_category(
+        session,
+        name="Налоги и сборы",
+        kind="expense",
+        report_group="taxes",
+    )
+
+    # Сотрудники
+    for name in ("Ира", "Илья", "Каштанова"):
+        _get_or_create_employee(session, name)
+
+    session.commit()
+
+
+# app\__init__.py
+
+
+# app\routers\auth.py
+"""Авторизация: login, logout, установка сессионной cookie."""
+from fastapi import APIRouter, Form, Request
+from fastapi.responses import RedirectResponse
+from starlette.templating import Jinja2Templates
+
+from app.config import settings
+from app.deps import serializer
+
+router = APIRouter(tags=["auth"])
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/login")
+async def login_page(request: Request, error: str | None = None):
+    return templates.TemplateResponse(request, "login.html", {"error": error})
+
+
+@router.post("/login")
+async def login_post(password: str = Form(...)):
+    if password == settings.ADMIN_PASSWORD:
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            "session",
+            serializer.dumps({"auth": True}),
+            httponly=True,
+            samesite="lax",
+        )
+        return response
+    return RedirectResponse(url="/login?error=1", status_code=302)
+
+
+@router.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/login", status_code=302)
+    response.delete_cookie("session")
+    return response
+
+
+# app\routers\backups.py
+"""Роутер управления резервными копиями БД."""
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from starlette.templating import Jinja2Templates
+
+from app.config import settings
+from app.deps import get_db, require_auth
+from app.services.backup import backup_database, list_backups, restore_database
+
+router = APIRouter(tags=["backups"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _backup_dir() -> Path:
+    backup_dir = Path(settings.BACKUP_DIR)
+    if not backup_dir.is_absolute():
+        from app.config import BASE_DIR
+
+        backup_dir = BASE_DIR / backup_dir
+    return backup_dir
+
+
+def _backup_to_dict(backup: Path) -> dict:
+    stat = backup.stat()
+    return {
+        "filename": backup.name,
+        "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        "size_bytes": stat.st_size,
+    }
+
+
+@router.get("/backups")
+async def backups_page(request: Request, restored: int | None = None):
+    backups = [_backup_to_dict(b) for b in list_backups()]
+    return templates.TemplateResponse(
+        request,
+        "backups/backups.html",
+        {
+            "backups": backups,
+            "restored": bool(restored),
+        },
+    )
+
+
+@router.post("/backups/create")
+async def backups_create():
+    backup_database()
+    return RedirectResponse(url="/backups", status_code=302)
+
+
+@router.post("/backups/restore/{filename}")
+async def backups_restore(filename: str):
+    backup_path = _backup_dir() / filename
+    try:
+        restore_database(backup_path)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return RedirectResponse(url="/backups?restored=1", status_code=302)
+
+
+@router.get("/api/backups")
+async def api_backups_list():
+    return [_backup_to_dict(b) for b in list_backups()]
+
+
+# app\routers\categories.py
+"""Категории доходов/расходов: HTML-CRUD и JSON API."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import Category, ChangeLog
+from app.schemas import CategoryCreate, CategoryRead
+
+router = APIRouter(tags=["categories"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+def _build_category_tree(categories: list[Category]) -> list[Category]:
+    by_id = {c.id: c for c in categories}
+    roots: list[Category] = []
+    for category in categories:
+        if category.parent_id and category.parent_id in by_id:
+            by_id[category.parent_id].children.append(category)
+        else:
+            roots.append(category)
+    return roots
+
+
+def _category_to_dict(category: Category) -> dict:
+    return {
+        "id": category.id,
+        "name": category.name,
+        "kind": category.kind,
+        "parent_id": category.parent_id,
+        "requires_payment_method": category.requires_payment_method,
+        "requires_guests": category.requires_guests,
+        "requires_supplier": category.requires_supplier,
+        "requires_products": category.requires_products,
+        "requires_employee": category.requires_employee,
+        "requires_responsible": category.requires_responsible,
+        "is_active": category.is_active,
+        "report_group": category.report_group,
+        "children": [],
+    }
+
+
+def _build_category_tree_dict(categories: list[Category]) -> list[dict]:
+    by_id = {c.id: _category_to_dict(c) for c in categories}
+    roots: list[dict] = []
+    for category in categories:
+        node = by_id[category.id]
+        if category.parent_id and category.parent_id in by_id:
+            by_id[category.parent_id]["children"].append(node)
+        else:
+            roots.append(node)
+    return roots
+
+
+@router.get("/categories")
+async def categories_list(request: Request, db: Session = Depends(get_db)):
+    all_categories = (
+        db.query(Category).order_by(Category.kind, Category.name).all()
+    )
+    tree = _build_category_tree(all_categories)
+    return templates.TemplateResponse(
+        request,
+        "categories/list.html",
+        {"categories": tree, "all_categories": all_categories},
+    )
+
+
+@router.post("/categories")
+async def category_create(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    kind: str = Form(...),
+    parent_id: int | None = Form(None),
+    requires_payment_method: bool = Form(False),
+    requires_guests: bool = Form(False),
+    requires_supplier: bool = Form(False),
+    requires_products: bool = Form(False),
+    requires_employee: bool = Form(False),
+    requires_responsible: bool = Form(False),
+    report_group: str | None = Form(None),
+):
+    category = Category(
+        name=name,
+        kind=kind,
+        parent_id=parent_id,
+        requires_payment_method=requires_payment_method,
+        requires_guests=requires_guests,
+        requires_supplier=requires_supplier,
+        requires_products=requires_products,
+        requires_employee=requires_employee,
+        requires_responsible=requires_responsible,
+        report_group=report_group or None,
+    )
+    db.add(category)
+    db.flush()
+    _log_change(db, "category", category.id, "create")
+    db.commit()
+    return RedirectResponse(url="/categories", status_code=302)
+
+
+@router.post("/categories/{category_id}")
+async def category_update(
+    request: Request,
+    category_id: int,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    kind: str = Form(...),
+    parent_id: int | None = Form(None),
+    requires_payment_method: bool = Form(False),
+    requires_guests: bool = Form(False),
+    requires_supplier: bool = Form(False),
+    requires_products: bool = Form(False),
+    requires_employee: bool = Form(False),
+    requires_responsible: bool = Form(False),
+    is_active: bool = Form(True),
+    report_group: str | None = Form(None),
+):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+
+    columns = [c.name for c in Category.__table__.columns]
+    old_values = {c: getattr(category, c) for c in columns}
+
+    category.name = name
+    category.kind = kind
+    category.parent_id = parent_id
+    category.requires_payment_method = requires_payment_method
+    category.requires_guests = requires_guests
+    category.requires_supplier = requires_supplier
+    category.requires_products = requires_products
+    category.requires_employee = requires_employee
+    category.requires_responsible = requires_responsible
+    category.is_active = is_active
+    category.report_group = report_group or None
+
+    db.flush()
+    new_values = {c: getattr(category, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "category", category.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/categories", status_code=302)
+
+
+@router.post("/categories/{category_id}/delete")
+async def category_delete(category_id: int, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    db.delete(category)
+    _log_change(db, "category", category.id, "delete")
+    db.commit()
+    return RedirectResponse(url="/categories", status_code=302)
+
+
+@router.get("/api/categories", response_model=list[CategoryRead])
+async def api_categories_list(
+    db: Session = Depends(get_db),
+    kind: str | None = Query(None),
+    tree: int | None = Query(None),
+):
+    query = db.query(Category).order_by(Category.kind, Category.name)
+    if kind:
+        query = query.filter(Category.kind == kind)
+    categories = query.all()
+    if tree:
+        return _build_category_tree_dict(categories)
+    return categories
+
+
+@router.post("/api/categories", response_model=CategoryRead)
+async def api_categories_create(data: CategoryCreate, db: Session = Depends(get_db)):
+    category = Category(**data.model_dump())
+    db.add(category)
+    db.flush()
+    _log_change(db, "category", category.id, "create")
+    db.commit()
+    db.refresh(category)
+    return category
+
+
+# app\routers\employees.py
+"""Сотрудники: HTML-CRUD и JSON API."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import ChangeLog, Employee
+from app.schemas import EmployeeCreate, EmployeeRead
+
+router = APIRouter(tags=["employees"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+@router.get("/employees")
+async def employees_list(request: Request, db: Session = Depends(get_db)):
+    employees = db.query(Employee).order_by(Employee.name).all()
+    return templates.TemplateResponse(
+        request,
+        "employees/list.html",
+        {"employees": employees},
+    )
+
+
+@router.post("/employees")
+async def employee_create(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    role: str | None = Form(None),
+):
+    employee = Employee(name=name, role=role)
+    db.add(employee)
+    db.flush()
+    _log_change(db, "employee", employee.id, "create")
+    db.commit()
+    return RedirectResponse(url="/employees", status_code=302)
+
+
+@router.post("/employees/{employee_id}")
+async def employee_update(
+    request: Request,
+    employee_id: int,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    role: str | None = Form(None),
+    is_active: bool = Form(True),
+):
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    columns = [c.name for c in Employee.__table__.columns]
+    old_values = {c: getattr(employee, c) for c in columns}
+
+    employee.name = name
+    employee.role = role
+    employee.is_active = is_active
+
+    db.flush()
+    new_values = {c: getattr(employee, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "employee", employee.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/employees", status_code=302)
+
+
+@router.post("/employees/{employee_id}/delete")
+async def employee_delete(employee_id: int, db: Session = Depends(get_db)):
+    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Сотрудник не найден")
+    db.delete(employee)
+    _log_change(db, "employee", employee.id, "delete")
+    db.commit()
+    return RedirectResponse(url="/employees", status_code=302)
+
+
+@router.get("/api/employees", response_model=list[EmployeeRead])
+async def api_employees_list(db: Session = Depends(get_db)):
+    return db.query(Employee).order_by(Employee.name).all()
+
+
+@router.post("/api/employees", response_model=EmployeeRead)
+async def api_employees_create(data: EmployeeCreate, db: Session = Depends(get_db)):
+    employee = Employee(**data.model_dump())
+    db.add(employee)
+    db.flush()
+    _log_change(db, "employee", employee.id, "create")
+    db.commit()
+    db.refresh(employee)
+    return employee
+
+
+# app\routers\health.py
+"""Healthcheck с проверкой доступности БД."""
+from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+
+from app.database import engine
+
+router = APIRouter(tags=["health"])
+
+
+@router.get("/health")
+async def health():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "error",
+                "database": "error",
+                "detail": str(exc),
+            },
+        )
+
+
+# app\routers\operations.py
+"""Операции доходов/расходов: HTML-CRUD и JSON API."""
+import re
+from collections import defaultdict
+from datetime import date
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session, joinedload
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Supplier
+from app.schemas import OperationCreate, OperationRead
+
+
+PAYMENT_METHOD_LABELS = {
+    "cash": "Нал",
+    "card": "Б/нал",
+    "transfer": "Перевод",
+}
+
+
+ITEM_FIELD_RE = re.compile(r"items\[(\d+)\]\[(\w+)\]")
+
+router = APIRouter(tags=["operations"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+def _parse_items_from_form(form) -> list[OperationItem]:
+    """Разбирает динамические поля items[i][field] из form-data."""
+    raw: dict[int, dict[str, str]] = defaultdict(dict)
+    for key, value in form.multi_items():
+        match = ITEM_FIELD_RE.match(key)
+        if match:
+            idx = int(match.group(1))
+            field = match.group(2)
+            raw[idx][field] = value
+
+    items: list[OperationItem] = []
+    for idx in sorted(raw.keys()):
+        data = raw[idx]
+        name = (data.get("name") or "").strip()
+        if not name:
+            continue
+        product_id = data.get("product_id")
+        items.append(
+            OperationItem(
+                product_id=int(product_id) if product_id else None,
+                name=name,
+                price=Decimal(data.get("price") or "0"),
+                quantity=Decimal(data.get("quantity") or "1"),
+                unit=data.get("unit") or "шт",
+            )
+        )
+    return items
+
+
+def _validate_operation_form(
+    category: Category,
+    kind: str,
+    guests_count: int | None,
+    payment_method: str | None,
+    supplier_id: int | None,
+    employee_id: int | None,
+    responsible: str | None,
+    items: list[OperationItem],
+) -> None:
+    if kind not in ("income", "expense"):
+        raise HTTPException(status_code=400, detail="Неверный тип операции")
+
+    if category.requires_guests and (not guests_count or guests_count <= 0):
+        raise HTTPException(status_code=400, detail="Количество гостей обязательно и должно быть больше 0")
+
+    if category.requires_payment_method and kind == "income" and not payment_method:
+        raise HTTPException(status_code=400, detail="Способ оплаты обязателен")
+
+    if category.requires_supplier and not supplier_id:
+        raise HTTPException(status_code=400, detail="Поставщик обязателен")
+
+    if category.requires_employee and not employee_id:
+        raise HTTPException(status_code=400, detail="Сотрудник обязателен")
+
+    if category.requires_responsible and not responsible:
+        raise HTTPException(status_code=400, detail="Ответственный обязателен")
+
+    if category.requires_products and not items:
+        raise HTTPException(status_code=400, detail="Добавьте хотя бы одну строку продукта")
+
+
+@router.get("/operations")
+async def operations_list(
+    request: Request,
+    db: Session = Depends(get_db),
+    kind: str | None = Query(None),
+    category_id: int | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+):
+    query = db.query(Operation).options(
+        joinedload(Operation.category).joinedload(Category.parent)
+    )
+    if kind:
+        query = query.filter(Operation.kind == kind)
+    if category_id:
+        query = query.filter(Operation.category_id == category_id)
+    if date_from:
+        query = query.filter(Operation.date >= date_from)
+    if date_to:
+        query = query.filter(Operation.date <= date_to)
+
+    operations = query.order_by(Operation.date.desc(), Operation.id.desc()).all()
+    categories = db.query(Category).order_by(Category.kind, Category.name).all()
+    return templates.TemplateResponse(
+        request,
+        "operations/list.html",
+        {
+            "operations": operations,
+            "categories": categories,
+            "kind": kind,
+            "category_id": category_id,
+            "date_from": date_from,
+            "date_to": date_to,
+            "payment_labels": PAYMENT_METHOD_LABELS,
+        },
+    )
+
+
+@router.get("/operations/new")
+async def operation_new(request: Request, db: Session = Depends(get_db)):
+    categories = (
+        db.query(Category)
+        .filter(Category.is_active == True)
+        .order_by(Category.kind, Category.name)
+        .all()
+    )
+    employees = (
+        db.query(Employee)
+        .filter(Employee.is_active == True)
+        .order_by(Employee.name)
+        .all()
+    )
+    suppliers = (
+        db.query(Supplier)
+        .filter(Supplier.is_active == True)
+        .order_by(Supplier.name)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "operations/form.html",
+        {
+            "operation": None,
+            "categories": categories,
+            "employees": employees,
+            "suppliers": suppliers,
+            "payment_labels": PAYMENT_METHOD_LABELS,
+            "today": date.today().isoformat(),
+        },
+    )
+
+
+@router.get("/operations/{operation_id}/edit")
+async def operation_edit(
+    request: Request,
+    operation_id: int,
+    db: Session = Depends(get_db),
+):
+    operation = (
+        db.query(Operation)
+        .options(joinedload(Operation.items).joinedload(OperationItem.product))
+        .filter(Operation.id == operation_id)
+        .first()
+    )
+    if not operation:
+        raise HTTPException(status_code=404, detail="Операция не найдена")
+    categories = (
+        db.query(Category)
+        .filter(Category.is_active == True)
+        .order_by(Category.kind, Category.name)
+        .all()
+    )
+    employees = (
+        db.query(Employee)
+        .filter(Employee.is_active == True)
+        .order_by(Employee.name)
+        .all()
+    )
+    suppliers = (
+        db.query(Supplier)
+        .filter(Supplier.is_active == True)
+        .order_by(Supplier.name)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request,
+        "operations/form.html",
+        {
+            "operation": operation,
+            "categories": categories,
+            "employees": employees,
+            "suppliers": suppliers,
+            "payment_labels": PAYMENT_METHOD_LABELS,
+            "today": date.today().isoformat(),
+        },
+    )
+
+
+@router.post("/operations")
+async def operation_create(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    data = {k: v for k, v in form.multi_items()}
+
+    kind = data.get("kind")
+    category_id = int(data.get("category_id") or 0)
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Категория не найдена")
+
+    guests_count = int(data["guests_count"]) if data.get("guests_count") else None
+    payment_method = data.get("payment_method") or None
+    supplier_id = int(data["supplier_id"]) if data.get("supplier_id") else None
+    employee_id = int(data["employee_id"]) if data.get("employee_id") else None
+    responsible = data.get("responsible") or None
+
+    items = _parse_items_from_form(form)
+    _validate_operation_form(
+        category=category,
+        kind=kind,
+        guests_count=guests_count,
+        payment_method=payment_method,
+        supplier_id=supplier_id,
+        employee_id=employee_id,
+        responsible=responsible,
+        items=items,
+    )
+
+    amount = Decimal(data.get("amount") or "0")
+    if kind == "expense" and category.requires_products and items:
+        calculated = sum(item.price * item.quantity for item in items)
+        if amount == 0:
+            amount = calculated
+
+    operation = Operation(
+        date=date.fromisoformat(data["date"]),
+        kind=kind,
+        category_id=category_id,
+        amount=amount,
+        comment=data.get("comment") or None,
+        guests_count=guests_count,
+        payment_method=payment_method,
+        supplier_id=supplier_id,
+        employee_id=employee_id,
+        responsible=responsible,
+    )
+    db.add(operation)
+    db.flush()
+
+    for item in items:
+        item.operation_id = operation.id
+        db.add(item)
+
+    _log_change(db, "operation", operation.id, "create")
+    db.commit()
+    return RedirectResponse(url="/operations", status_code=302)
+
+
+@router.post("/operations/{operation_id}")
+async def operation_update(
+    request: Request,
+    operation_id: int,
+    db: Session = Depends(get_db),
+):
+    operation = (
+        db.query(Operation)
+        .options(joinedload(Operation.items))
+        .filter(Operation.id == operation_id)
+        .first()
+    )
+    if not operation:
+        raise HTTPException(status_code=404, detail="Операция не найдена")
+
+    form = await request.form()
+    data = {k: v for k, v in form.multi_items()}
+
+    kind = data.get("kind")
+    category_id = int(data.get("category_id") or 0)
+    category = db.query(Category).filter(Category.id == category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Категория не найдена")
+
+    guests_count = int(data["guests_count"]) if data.get("guests_count") else None
+    payment_method = data.get("payment_method") or None
+    supplier_id = int(data["supplier_id"]) if data.get("supplier_id") else None
+    employee_id = int(data["employee_id"]) if data.get("employee_id") else None
+    responsible = data.get("responsible") or None
+
+    items = _parse_items_from_form(form)
+    _validate_operation_form(
+        category=category,
+        kind=kind,
+        guests_count=guests_count,
+        payment_method=payment_method,
+        supplier_id=supplier_id,
+        employee_id=employee_id,
+        responsible=responsible,
+        items=items,
+    )
+
+    columns = [c.name for c in Operation.__table__.columns]
+    old_values = {c: getattr(operation, c) for c in columns}
+
+    operation.date = date.fromisoformat(data["date"])
+    operation.kind = kind
+    operation.category_id = category_id
+    operation.comment = data.get("comment") or None
+    operation.guests_count = guests_count
+    operation.payment_method = payment_method
+    operation.supplier_id = supplier_id
+    operation.employee_id = employee_id
+    operation.responsible = responsible
+
+    amount = Decimal(data.get("amount") or "0")
+    if kind == "expense" and category.requires_products and items:
+        calculated = sum(item.price * item.quantity for item in items)
+        if amount == 0:
+            amount = calculated
+    operation.amount = amount
+
+    # Пересоздаём строки продуктов
+    for old_item in operation.items:
+        db.delete(old_item)
+    db.flush()
+    for item in items:
+        item.operation_id = operation.id
+        db.add(item)
+
+    db.flush()
+    new_values = {c: getattr(operation, c) for c in columns}
+
+    def _json_value(value):
+        from datetime import date, datetime
+
+        if isinstance(value, Decimal):
+            return float(value)
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        return value
+
+    changes = {
+        k: {"old": _json_value(old_values[k]), "new": _json_value(new_values[k])}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "operation", operation.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/operations", status_code=302)
+
+
+@router.post("/operations/{operation_id}/delete")
+async def operation_delete(operation_id: int, db: Session = Depends(get_db)):
+    operation = db.query(Operation).filter(Operation.id == operation_id).first()
+    if not operation:
+        raise HTTPException(status_code=404, detail="Операция не найдена")
+    db.delete(operation)
+    _log_change(db, "operation", operation.id, "delete")
+    db.commit()
+    return RedirectResponse(url="/operations", status_code=302)
+
+
+@router.get("/api/operations", response_model=list[OperationRead])
+async def api_operations_list(
+    db: Session = Depends(get_db),
+    kind: str | None = Query(None),
+    category_id: int | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+):
+    query = db.query(Operation).options(
+        joinedload(Operation.category),
+        joinedload(Operation.supplier),
+        joinedload(Operation.employee),
+        joinedload(Operation.items).joinedload(OperationItem.product),
+    )
+    if kind:
+        query = query.filter(Operation.kind == kind)
+    if category_id:
+        query = query.filter(Operation.category_id == category_id)
+    if date_from:
+        query = query.filter(Operation.date >= date_from)
+    if date_to:
+        query = query.filter(Operation.date <= date_to)
+    return query.order_by(Operation.date.desc(), Operation.id.desc()).all()
+
+
+@router.get("/api/operations/{operation_id}", response_model=OperationRead)
+async def api_operations_get(operation_id: int, db: Session = Depends(get_db)):
+    operation = (
+        db.query(Operation)
+        .options(
+            joinedload(Operation.category),
+            joinedload(Operation.supplier),
+            joinedload(Operation.employee),
+            joinedload(Operation.items).joinedload(OperationItem.product),
+        )
+        .filter(Operation.id == operation_id)
+        .first()
+    )
+    if not operation:
+        raise HTTPException(status_code=404, detail="Операция не найдена")
+    return operation
+
+
+@router.post(
+    "/api/operations",
+    response_model=OperationRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def api_operations_create(data: OperationCreate, db: Session = Depends(get_db)):
+    operation = Operation(
+        date=data.date,
+        kind=data.kind,
+        category_id=data.category_id,
+        amount=data.amount,
+        comment=data.comment,
+        guests_count=data.guests_count,
+        payment_method=data.payment_method,
+        supplier_id=data.supplier_id,
+        employee_id=data.employee_id,
+        responsible=data.responsible,
+    )
+    db.add(operation)
+    db.flush()
+    for item in data.items:
+        db.add(
+            OperationItem(
+                operation_id=operation.id,
+                product_id=item.product_id,
+                name=item.name,
+                price=item.price,
+                quantity=item.quantity,
+                unit=item.unit,
+            )
+        )
+    _log_change(db, "operation", operation.id, "create")
+    db.commit()
+    db.refresh(operation)
+    return operation
+
+
+# app\routers\products.py
+"""Продукты: HTML-CRUD и JSON API."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import ChangeLog, Product, ProductPrice
+from app.schemas import ProductCreate, ProductPriceRead, ProductRead, ProductWithPricesRead
+
+router = APIRouter(tags=["products"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+@router.get("/products")
+async def products_list(request: Request, db: Session = Depends(get_db)):
+    products = db.query(Product).order_by(Product.name).all()
+    return templates.TemplateResponse(
+        request,
+        "products/list.html",
+        {"products": products},
+    )
+
+
+@router.post("/products")
+async def product_create(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    unit: str = Form("шт"),
+):
+    product = Product(name=name, unit=unit)
+    db.add(product)
+    db.flush()
+    _log_change(db, "product", product.id, "create")
+    db.commit()
+    return RedirectResponse(url="/products", status_code=302)
+
+
+@router.post("/products/{product_id}")
+async def product_update(
+    request: Request,
+    product_id: int,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    unit: str = Form("шт"),
+    is_active: bool = Form(True),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+
+    columns = [c.name for c in Product.__table__.columns]
+    old_values = {c: getattr(product, c) for c in columns}
+
+    product.name = name
+    product.unit = unit
+    product.is_active = is_active
+
+    db.flush()
+    new_values = {c: getattr(product, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "product", product.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/products", status_code=302)
+
+
+@router.post("/products/{product_id}/delete")
+async def product_delete(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Продукт не найден")
+    db.delete(product)
+    _log_change(db, "product", product.id, "delete")
+    db.commit()
+    return RedirectResponse(url="/products", status_code=302)
+
+
+@router.get("/api/products", response_model=list[ProductWithPricesRead])
+async def api_products_list(
+    db: Session = Depends(get_db),
+    supplier_id: int | None = None,
+    active: bool | None = None,
+):
+    query = db.query(Product)
+    if active is not None:
+        query = query.filter(Product.is_active == active)
+    if supplier_id is not None:
+        query = query.join(ProductPrice).filter(ProductPrice.supplier_id == supplier_id)
+    return query.order_by(Product.name).all()
+
+
+@router.post("/api/products", response_model=ProductRead)
+async def api_products_create(data: ProductCreate, db: Session = Depends(get_db)):
+    product = Product(**data.model_dump())
+    db.add(product)
+    db.flush()
+    _log_change(db, "product", product.id, "create")
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.get("/api/product-prices", response_model=list[ProductPriceRead])
+async def api_product_prices(
+    db: Session = Depends(get_db),
+    supplier_id: int | None = None,
+    product_id: int | None = None,
+):
+    query = db.query(ProductPrice)
+    if supplier_id is not None:
+        query = query.filter(ProductPrice.supplier_id == supplier_id)
+    if product_id is not None:
+        query = query.filter(ProductPrice.product_id == product_id)
+    return query.all()
+
+
+# app\routers\stats.py
+"""Статистика: страница графиков и JSON API для Chart.js."""
+from datetime import date, timedelta
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import Category, Operation
+from app.schemas import CategorySummary, StatsData, StatsSummary
+
+router = APIRouter(tags=["stats"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+PAYMENT_METHOD_LABELS = {
+    "cash": "Нал",
+    "card": "Б/нал",
+    "transfer": "Перевод",
+}
+
+
+def _period_mode(date_from: date | None, date_to: date | None) -> str:
+    """Выбирает режим группировки по датам: day / week / month."""
+    if date_from and date_to:
+        days = (date_to - date_from).days + 1
+        if days > 365:
+            return "month"
+        if days > 60:
+            return "week"
+    return "day"
+
+
+def _period_expr(mode: str):
+    """SQLAlchemy-выражение для строки периода в зависимости от режима."""
+    if mode == "month":
+        return func.strftime("%Y-%m", Operation.date)
+    if mode == "week":
+        return func.strftime("%Y-%W", Operation.date)
+    return func.strftime("%Y-%m-%d", Operation.date)
+
+
+def _apply_filters(
+    query,
+    *,
+    kind: str | None = None,
+    category_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    payment_method: str | None = None,
+):
+    if kind and kind != "all":
+        query = query.filter(Operation.kind == kind)
+    if category_id:
+        query = query.filter(Operation.category_id == category_id)
+    if date_from:
+        query = query.filter(Operation.date >= date_from)
+    if date_to:
+        query = query.filter(Operation.date <= date_to)
+    if payment_method:
+        query = query.filter(Operation.payment_method == payment_method)
+    return query
+
+
+@router.get("/stats")
+async def stats_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "stats/charts.html",
+        {},
+    )
+
+
+@router.get("/api/stats/summary", response_model=StatsSummary)
+async def api_stats_summary(
+    db: Session = Depends(get_db),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+):
+    query = db.query(Operation)
+    if date_from:
+        query = query.filter(Operation.date >= date_from)
+    if date_to:
+        query = query.filter(Operation.date <= date_to)
+
+    income = (
+        query.filter(Operation.kind == "income")
+        .with_entities(func.coalesce(func.sum(Operation.amount), 0))
+        .scalar()
+    )
+    expense = (
+        query.filter(Operation.kind == "expense")
+        .with_entities(func.coalesce(func.sum(Operation.amount), 0))
+        .scalar()
+    )
+
+    category_totals = (
+        query.join(Category)
+        .group_by(Category.id, Category.name, Category.kind)
+        .with_entities(
+            Category.id.label("category_id"),
+            Category.name.label("category_name"),
+            Category.kind.label("kind"),
+            func.sum(Operation.amount).label("total"),
+        )
+        .order_by(Category.kind, Category.name)
+        .all()
+    )
+
+    return StatsSummary(
+        income=income,
+        expense=expense,
+        balance=income - expense,
+        by_category=[
+            CategorySummary(
+                category_id=row.category_id,
+                category_name=row.category_name,
+                kind=row.kind,
+                total=row.total,
+            )
+            for row in category_totals
+        ],
+    )
+
+
+@router.get("/api/stats/data", response_model=StatsData)
+async def api_stats_data(
+    db: Session = Depends(get_db),
+    kind: str = Query("all", pattern="^(all|income|expense)$"),
+    category_id: int | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    payment_method: str | None = Query(None),
+):
+    base_query = _apply_filters(
+        db.query(Operation),
+        kind=kind,
+        category_id=category_id,
+        date_from=date_from,
+        date_to=date_to,
+        payment_method=payment_method,
+    )
+
+    # Итоги: доход/расход/баланс с учётом фильтров
+    income = (
+        base_query.filter(Operation.kind == "income")
+        .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
+        .scalar()
+    )
+    expense = (
+        base_query.filter(Operation.kind == "expense")
+        .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
+        .scalar()
+    )
+
+    totals = {
+        "income": str(income.quantize(Decimal("0.01"))),
+        "expense": str(expense.quantize(Decimal("0.01"))),
+        "balance": str((income - expense).quantize(Decimal("0.01"))),
+    }
+
+    # Группировка по периодам
+    mode = _period_mode(date_from, date_to)
+    period_expr = _period_expr(mode)
+
+    period_rows = (
+        base_query.group_by(period_expr, Operation.kind)
+        .with_entities(
+            period_expr.label("period"),
+            Operation.kind,
+            func.coalesce(func.sum(Operation.amount), Decimal("0")).label("amount"),
+        )
+        .order_by(period_expr)
+        .all()
+    )
+
+    period_map: dict[str, dict[str, Decimal]] = {}
+    for row in period_rows:
+        period_map.setdefault(row.period, {"income": Decimal("0"), "expense": Decimal("0")})
+        period_map[row.period][row.kind] = row.amount
+
+    by_period = [
+        {
+            "period": period,
+            "income": str(values["income"].quantize(Decimal("0.01"))),
+            "expense": str(values["expense"].quantize(Decimal("0.01"))),
+        }
+        for period, values in sorted(period_map.items())
+    ]
+
+    # По категориям
+    category_query = _apply_filters(
+        db.query(Operation).join(Category),
+        kind=kind,
+        category_id=category_id,
+        date_from=date_from,
+        date_to=date_to,
+        payment_method=payment_method,
+    )
+    category_rows = (
+        category_query.group_by(Category.id, Category.name, Category.kind)
+        .with_entities(
+            Category.name.label("category"),
+            Category.kind,
+            func.coalesce(func.sum(Operation.amount), Decimal("0")).label("amount"),
+        )
+        .order_by(func.sum(Operation.amount).desc())
+        .all()
+    )
+    by_category = [
+        {
+            "category": row.category,
+            "kind": row.kind,
+            "amount": str(row.amount.quantize(Decimal("0.01"))),
+        }
+        for row in category_rows
+    ]
+
+    # По способам оплаты (только доход)
+    payment_query = _apply_filters(
+        db.query(Operation),
+        kind="income",
+        category_id=category_id,
+        date_from=date_from,
+        date_to=date_to,
+        payment_method=payment_method,
+    )
+    payment_rows = (
+        payment_query.filter(Operation.payment_method.isnot(None))
+        .group_by(Operation.payment_method)
+        .with_entities(
+            Operation.payment_method,
+            func.coalesce(func.sum(Operation.amount), Decimal("0")).label("amount"),
+        )
+        .order_by(func.sum(Operation.amount).desc())
+        .all()
+    )
+    by_payment = [
+        {
+            "payment_method": row.payment_method,
+            "label": PAYMENT_METHOD_LABELS.get(row.payment_method, row.payment_method),
+            "amount": str(row.amount.quantize(Decimal("0.01"))),
+        }
+        for row in payment_rows
+    ]
+
+    return StatsData(
+        totals=totals,
+        by_period=by_period,
+        by_category=by_category,
+        by_payment=by_payment,
+    )
+
+
+@router.get("/api/stats/filters")
+async def api_stats_filters(db: Session = Depends(get_db)):
+    categories = (
+        db.query(Category)
+        .filter(Category.is_active == True)
+        .order_by(Category.kind, Category.name)
+        .all()
+    )
+    return {
+        "categories": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "kind": c.kind,
+                "parent_id": c.parent_id,
+            }
+            for c in categories
+        ],
+        "payment_methods": [
+            {"value": key, "label": label}
+            for key, label in PAYMENT_METHOD_LABELS.items()
+        ],
+    }
+
+
+# app\routers\suppliers.py
+"""Поставщики: HTML-CRUD и JSON API."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import ChangeLog, Supplier
+from app.schemas import SupplierCreate, SupplierRead
+
+router = APIRouter(tags=["suppliers"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+@router.get("/suppliers")
+async def suppliers_list(request: Request, db: Session = Depends(get_db)):
+    suppliers = db.query(Supplier).order_by(Supplier.name).all()
+    return templates.TemplateResponse(
+        request,
+        "suppliers/list.html",
+        {"suppliers": suppliers},
+    )
+
+
+@router.post("/suppliers")
+async def supplier_create(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    contact: str | None = Form(None),
+):
+    supplier = Supplier(name=name, contact=contact)
+    db.add(supplier)
+    db.flush()
+    _log_change(db, "supplier", supplier.id, "create")
+    db.commit()
+    return RedirectResponse(url="/suppliers", status_code=302)
+
+
+@router.post("/suppliers/{supplier_id}")
+async def supplier_update(
+    request: Request,
+    supplier_id: int,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    contact: str | None = Form(None),
+    is_active: bool = Form(True),
+):
+    supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Поставщик не найден")
+
+    columns = [c.name for c in Supplier.__table__.columns]
+    old_values = {c: getattr(supplier, c) for c in columns}
+
+    supplier.name = name
+    supplier.contact = contact
+    supplier.is_active = is_active
+
+    db.flush()
+    new_values = {c: getattr(supplier, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "supplier", supplier.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/suppliers", status_code=302)
+
+
+@router.post("/suppliers/{supplier_id}/delete")
+async def supplier_delete(supplier_id: int, db: Session = Depends(get_db)):
+    supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Поставщик не найден")
+    db.delete(supplier)
+    _log_change(db, "supplier", supplier.id, "delete")
+    db.commit()
+    return RedirectResponse(url="/suppliers", status_code=302)
+
+
+@router.get("/api/suppliers", response_model=list[SupplierRead])
+async def api_suppliers_list(db: Session = Depends(get_db)):
+    return db.query(Supplier).order_by(Supplier.name).all()
+
+
+@router.post("/api/suppliers", response_model=SupplierRead)
+async def api_suppliers_create(data: SupplierCreate, db: Session = Depends(get_db)):
+    supplier = Supplier(**data.model_dump())
+    db.add(supplier)
+    db.flush()
+    _log_change(db, "supplier", supplier.id, "create")
+    db.commit()
+    db.refresh(supplier)
+    return supplier
+
+
+# app\routers\sync.py
+"""Роутер ручной синхронизации с Google Sheets."""
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.config import settings
+from app.deps import get_db, require_auth
+from app.models import SyncLog
+from app.schemas import SyncLogRead
+from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
+
+router = APIRouter(tags=["sync"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+def _last_logs(db: Session, limit: int = 20):
+    return (
+        db.query(SyncLog)
+        .order_by(SyncLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get("/sync")
+async def sync_page(request: Request, db: Session = Depends(get_db)):
+    logs = _last_logs(db)
+    return templates.TemplateResponse(
+        request,
+        "sync/sync.html",
+        {
+            "logs": logs,
+            "spreadsheet_configured": bool(settings.GOOGLE_SPREADSHEET_ID),
+            "schedule": settings.SYNC_SCHEDULE,
+        },
+    )
+
+
+@router.post("/sync/now")
+async def sync_now(db: Session = Depends(get_db)):
+    try:
+        result = sync_operations_to_sheets(db)
+        log_sync_attempt(
+            db,
+            success=True,
+            message="Синхронизация отчёта P&L с Google Таблицей завершена успешно",
+            details=result,
+            records_count=result.get("synced"),
+        )
+        return {
+            "success": True,
+            "synced": result["synced"],
+            "message": f"Синхронизировано {result['synced']} операций",
+        }
+    except ValueError as exc:
+        message = str(exc)
+        log_sync_attempt(
+            db,
+            success=False,
+            message=message,
+            details={"error": message},
+        )
+        return {"success": False, "error": message}
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc)
+        log_sync_attempt(
+            db,
+            success=False,
+            message=message,
+            details={"error": message},
+        )
+        return {"success": False, "error": message}
+
+
+@router.get("/api/sync/logs", response_model=list[SyncLogRead])
+async def api_sync_logs(db: Session = Depends(get_db)):
+    return _last_logs(db)
+
+
+# app\routers\__init__.py
+
+
+# app\services\backup.py
+"""Сервис резервного копирования SQLite-базы данных."""
+import logging
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+from app.config import BASE_DIR, settings
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_db_path(database_url: str) -> Path | None:
+    """Возвращает путь к файлу SQLite из DATABASE_URL или None, если не sqlite."""
+    if not database_url.startswith("sqlite"):
+        return None
+    prefix = "sqlite:///"
+    if database_url.startswith(prefix):
+        db_path = database_url[len(prefix) :]
+    else:
+        return None
+
+    if db_path in (":memory:", ""):
+        return None
+
+    db_path_obj = Path(db_path)
+    if not db_path_obj.is_absolute():
+        db_path_obj = BASE_DIR / db_path_obj
+    return db_path_obj
+
+
+def _backup_dir() -> Path:
+    """Возвращает абсолютный путь к каталогу резервных копий."""
+    backup_dir = Path(settings.BACKUP_DIR)
+    if not backup_dir.is_absolute():
+        backup_dir = BASE_DIR / backup_dir
+    return backup_dir
+
+
+def _parse_existing_backups(backup_dir: Path) -> list[Path]:
+    """Возвращает существующие файлы бэкапов, отсортированные по имени (свежее — раньше).
+
+    Имя файла содержит UTC-метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
+    лексикографический порядок совпадает с хронологическим.
+    """
+    if not backup_dir.exists():
+        return []
+    backups = [p for p in backup_dir.iterdir() if p.is_file() and p.suffix == ".db"]
+    backups.sort(key=lambda p: p.name, reverse=True)
+    return backups
+
+
+def backup_database() -> Path | None:
+    """Создаёт резервную копию SQLite-БД и ротирует старые копии.
+
+    Returns:
+        Путь к созданной копии или None, если БД не SQLite / недоступна.
+    """
+    db_path = _resolve_db_path(settings.DATABASE_URL)
+    if db_path is None:
+        logger.warning(
+            "Резервное копирование поддерживается только для SQLite; текущий DATABASE_URL=%s",
+            settings.DATABASE_URL,
+        )
+        return None
+
+    if not db_path.exists():
+        logger.error("Файл базы данных не найден: %s", db_path)
+        return None
+
+    backup_dir = _backup_dir()
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
+        return None
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    backup_name = f"app_{timestamp}.db"
+    backup_path = backup_dir / backup_name
+
+    try:
+        shutil.copy2(db_path, backup_path)
+    except OSError as exc:
+        logger.error("Не удалось создать резервную копию %s: %s", backup_path, exc)
+        return None
+
+    logger.info("Создана резервная копия БД: %s", backup_path)
+
+    _rotate_backups(backup_dir)
+
+    return backup_path
+
+
+def _rotate_backups(backup_dir: Path) -> None:
+    """Удаляет старые резервные копии, оставляя не более BACKUP_KEEP последних."""
+    keep = max(1, settings.BACKUP_KEEP)
+    backups = _parse_existing_backups(backup_dir)
+    for old_backup in backups[keep:]:
+        try:
+            old_backup.unlink()
+            logger.info("Удалена старая резервная копия: %s", old_backup)
+        except OSError as exc:
+            logger.warning("Не удалось удалить старую копию %s: %s", old_backup, exc)
+
+
+def list_backups() -> list[Path]:
+    """Возвращает список резервных копий, отсортированный по времени изменения (свежее — раньше)."""
+    return _parse_existing_backups(_backup_dir())
+
+
+def restore_database(backup_path: Path) -> Path:
+    """Восстанавливает БД из указанной резервной копии.
+
+    Args:
+        backup_path: Путь к файлу резервной копии.
+
+    Returns:
+        Путь к восстановленному файлу БД.
+
+    Raises:
+        FileNotFoundError: если файл копии не существует.
+        ValueError: если текущая БД не SQLite.
+    """
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Резервная копия не найдена: {backup_path}")
+
+    db_path = _resolve_db_path(settings.DATABASE_URL)
+    if db_path is None:
+        raise ValueError(
+            f"Восстановление поддерживается только для SQLite; текущий DATABASE_URL={settings.DATABASE_URL}"
+        )
+
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(backup_path, db_path)
+    logger.info("База данных восстановлена из %s в %s", backup_path, db_path)
+    return db_path
+
+
+# app\services\report.py
+"""Генерация отчёта P&L по месяцам для Google Sheets."""
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import date
+from decimal import Decimal
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.models import Category, Employee, Operation
+
+MONTH_NAMES = [
+    "январь",
+    "февраль",
+    "март",
+    "апрель",
+    "май",
+    "июнь",
+    "июль",
+    "август",
+    "сентябрь",
+    "октябрь",
+    "ноябрь",
+    "декабрь",
+]
+
+# Дружелюбный справочник групп учёта для отчёта P&L.
+# Ключ хранится в Category.report_group, label показывается пользователю.
+REPORT_GROUPS: list[dict[str, str]] = [
+    {"key": "", "label": "— не в отчёте —"},
+    {"key": "revenue_lavka", "label": "Доход: лавка"},
+    {"key": "revenue_catering", "label": "Доход: кейтеринг"},
+    {"key": "revenue_rent", "label": "Доход: аренда"},
+    {"key": "revenue_commission", "label": "Доход: комиссия"},
+    {"key": "direct_products", "label": "Прямой расход: продукты лавка"},
+    {"key": "direct_catering_cost", "label": "Прямой расход: себестоимость кейтеринга"},
+    {"key": "direct_animal_feed", "label": "Прямой расход: корм для животных"},
+    {"key": "direct_gas", "label": "Прямой расход: бензин"},
+    {"key": "direct_meals", "label": "Прямой расход: служебное питание"},
+    {"key": "direct_wages", "label": "Прямой расход: оплата труда"},
+    {"key": "direct_operational", "label": "Прямой расход: операционные"},
+    {"key": "direct_other", "label": "Прямой расход: иное"},
+    {"key": "overhead_equaring", "label": "Накладный расход: эквайринг"},
+    {"key": "overhead_delivery", "label": "Накладный расход: доставка"},
+    {"key": "overhead_wifi", "label": "Накладный расход: WiFi"},
+    {"key": "overhead_bank", "label": "Накладный расход: комиссия банка"},
+    {"key": "overhead_it", "label": "Накладный расход: ИТ"},
+    {"key": "overhead_electricity", "label": "Накладный расход: электричество / коммунальные"},
+    {"key": "overhead_finance", "label": "Накладный расход: финансы"},
+    {"key": "overhead_marketing", "label": "Накладный расход: маркетинг"},
+    {"key": "overhead_equipment", "label": "Накладный расход: оборудование и инвентарь"},
+    {"key": "overhead_rent", "label": "Накладный расход: аренда помещения"},
+    {"key": "overhead_other", "label": "Накладный расход: прочее"},
+    {"key": "taxes", "label": "Налоги и сборы"},
+    {"key": "investments", "label": "Инвестиции"},
+]
+
+REPORT_GROUP_BY_KEY = {item["key"]: item["label"] for item in REPORT_GROUPS}
+
+
+def report_group_label(key: str | None) -> str:
+    if not key:
+        return "— не в отчёте —"
+    return REPORT_GROUP_BY_KEY.get(key, key)
+
+
+@dataclass
+class RowValue:
+    amount: Decimal = Decimal("0")
+    percent: Decimal = Decimal("0")
+    raw: bool = True  # True для числовых ячеек, False для пустых/текстовых
+
+
+@dataclass
+class ReportRow:
+    label: str
+    section: str
+    level: int = 0
+    bold: bool = False
+    skip_percent: bool = False
+    background: str | None = None
+    values: list[RowValue] = field(default_factory=list)
+    subrows: list["ReportRow"] = field(default_factory=list)
+
+
+@dataclass
+class ReportData:
+    months: list[str]
+    rows: list[ReportRow]
+
+
+def _month_label(year: int, month: int, years: set[int]) -> str:
+    label = MONTH_NAMES[month - 1]
+    if len(years) > 1:
+        label = f"{label} {year}"
+    return label
+
+
+def _months_range(operations: list[Operation]) -> list[tuple[int, int, str]]:
+    """Возвращает список (year, month, label), отсортированный по хронологии."""
+    if not operations:
+        today = date.today()
+        return [(today.year, today.month, _month_label(today.year, today.month, {today.year}))]
+
+    months_set: set[tuple[int, int]] = set()
+    years: set[int] = set()
+    for op in operations:
+        months_set.add((op.date.year, op.date.month))
+        years.add(op.date.year)
+
+    sorted_months = sorted(months_set)
+    return [(y, m, _month_label(y, m, years)) for y, m in sorted_months]
+
+
+def _match_group(report_group: str | None, pattern: str) -> bool:
+    if report_group is None:
+        return False
+    if pattern.endswith("*"):
+        return report_group.startswith(pattern[:-1])
+    return report_group == pattern
+
+
+def _collect_operations(db: Session) -> list[Operation]:
+    return (
+        db.query(Operation)
+        .join(Category)
+        .outerjoin(Employee)
+        .order_by(Operation.date)
+        .all()
+    )
+
+
+def _aggregate(
+    operations: list[Operation],
+    months: list[tuple[int, int, str]],
+) -> tuple[dict, dict, dict]:
+    """Агрегирует суммы по месяцам, группам отчёта и сотрудникам."""
+    month_index = {(y, m): i for i, (y, m, _) in enumerate(months)}
+    n = len(months)
+
+    # revenue[month_idx] = Decimal
+    revenue: list[Decimal] = [Decimal("0") for _ in range(n)]
+    # by_group[report_group][month_idx] = Decimal
+    by_group: dict[str, list[Decimal]] = defaultdict(lambda: [Decimal("0") for _ in range(n)])
+    # by_employee[group][employee_name][month_idx] = Decimal
+    by_employee: dict[str, dict[str, list[Decimal]]] = defaultdict(
+        lambda: defaultdict(lambda: [Decimal("0") for _ in range(n)])
+    )
+
+    for op in operations:
+        idx = month_index.get((op.date.year, op.date.month))
+        if idx is None:
+            continue
+
+        group = op.category.report_group
+        amount = op.amount
+
+        if op.kind == "income":
+            revenue[idx] += amount
+
+        if group:
+            by_group[group][idx] += amount
+            if op.employee_id and op.employee:
+                by_employee[group][op.employee.name][idx] += amount
+
+    return revenue, by_group, by_employee
+
+
+def _calc_row(
+    months: list[tuple[int, int, str]],
+    revenue: list[Decimal],
+    amounts: list[Decimal],
+    skip_percent: bool = False,
+) -> list[RowValue]:
+    values = []
+    for i, _ in enumerate(months):
+        amt = amounts[i]
+        if skip_percent:
+            values.append(RowValue(amount=amt, percent=Decimal("0"), raw=True))
+        else:
+            pct = Decimal("0")
+            if revenue[i]:
+                pct = (amt / revenue[i]) * Decimal("100")
+            values.append(RowValue(amount=amt, percent=pct, raw=True))
+    return values
+
+
+def _amounts_for_groups(
+    months: list[tuple[int, int, str]],
+    by_group: dict[str, list[Decimal]],
+    patterns: list[str],
+) -> list[Decimal]:
+    n = len(months)
+    amounts = [Decimal("0") for _ in range(n)]
+    for pattern in patterns:
+        for group, vals in by_group.items():
+            if _match_group(group, pattern):
+                for i in range(n):
+                    amounts[i] += vals[i]
+    return amounts
+
+
+def build_report(db: Session) -> ReportData:
+    """Строит отчёт P&L по месяцам."""
+    operations = _collect_operations(db)
+    months = _months_range(operations)
+    revenue, by_group, by_employee = _aggregate(operations, months)
+    n = len(months)
+
+    rows: list[ReportRow] = []
+
+    # Доходы
+    rows.append(
+        ReportRow(
+            label="Выручка всего",
+            section="revenue_total",
+            level=0,
+            bold=True,
+            background="yellow",
+            values=_calc_row(months, revenue, revenue),
+        )
+    )
+
+    revenue_rows = [
+        ("Выручка лавка", "revenue_lavka"),
+        ("Выручка кейтеринг", "revenue_catering"),
+        ("Выручка аренда", "revenue_rent"),
+        ("Выручка комиссия", "revenue_commission"),
+    ]
+    for label, group in revenue_rows:
+        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
+        rows.append(
+            ReportRow(
+                label=label,
+                section="revenue",
+                level=1,
+                values=_calc_row(months, revenue, amounts),
+            )
+        )
+
+    # Прямые расходы
+    direct_total_amounts = _amounts_for_groups(months, by_group, ["direct_*"])
+    rows.append(
+        ReportRow(
+            label="Прямые расходы всего",
+            section="direct_total",
+            level=0,
+            bold=True,
+            background="blue",
+            values=_calc_row(months, revenue, direct_total_amounts),
+        )
+    )
+
+    direct_rows = [
+        ("продукты лавка", "direct_products", False),
+        ("себестоимость кейтеринг", "direct_catering_cost", False),
+        ("корм для животных", "direct_animal_feed", False),
+        ("бензин", "direct_gas", False),
+        ("служебное питание", "direct_meals", False),
+        ("оплата труда", "direct_wages", True),
+        ("Опреционные расходы", "direct_operational", False),
+        ("Иное", "direct_other", False),
+    ]
+    for label, group, group_by_employee in direct_rows:
+        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
+        row = ReportRow(
+            label=label,
+            section="direct",
+            level=1,
+            values=_calc_row(months, revenue, amounts),
+        )
+        if group_by_employee and group in by_employee:
+            for employee_name in sorted(by_employee[group].keys()):
+                emp_amounts = by_employee[group][employee_name]
+                row.subrows.append(
+                    ReportRow(
+                        label=f"  {employee_name}",
+                        section="direct",
+                        level=2,
+                        values=_calc_row(months, revenue, emp_amounts),
+                    )
+                )
+        rows.append(row)
+
+    # Накладные расходы
+    overhead_total_amounts = _amounts_for_groups(months, by_group, ["overhead_*"])
+    rows.append(
+        ReportRow(
+            label="Накладные расходы всего",
+            section="overhead_total",
+            level=0,
+            bold=True,
+            background="blue",
+            values=_calc_row(months, revenue, overhead_total_amounts),
+        )
+    )
+
+    overhead_rows = [
+        ("эквайринг", "overhead_equaring"),
+        ("доставка", "overhead_delivery"),
+        ("WiFi", "overhead_wifi"),
+        ("Комиссия банка", "overhead_bank"),
+        ("ИТ", "overhead_it"),
+        ("электричество", "overhead_electricity"),
+        ("финансы", "overhead_finance"),
+        ("маркетинг", "overhead_marketing"),
+        ("Оборудование и инвентарь", "overhead_equipment"),
+        ("Аренда помещения", "overhead_rent"),
+        ("Прочие накладные", "overhead_other"),
+    ]
+    for label, group in overhead_rows:
+        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
+        rows.append(
+            ReportRow(
+                label=label,
+                section="overhead",
+                level=1,
+                values=_calc_row(months, revenue, amounts),
+            )
+        )
+
+    # Налоги
+    taxes_amounts = by_group.get("taxes", [Decimal("0") for _ in range(n)])
+    rows.append(
+        ReportRow(
+            label="Налоги и сборы",
+            section="taxes",
+            level=0,
+            bold=True,
+            background="blue",
+            values=_calc_row(months, revenue, taxes_amounts),
+        )
+    )
+
+    # Прибыль
+    profit_amounts = [
+        revenue[i] - direct_total_amounts[i] - overhead_total_amounts[i] - taxes_amounts[i]
+        for i in range(n)
+    ]
+    rows.append(
+        ReportRow(
+            label="Прибыль",
+            section="profit",
+            level=0,
+            bold=True,
+            skip_percent=True,
+            background="green",
+            values=_calc_row(months, revenue, profit_amounts, skip_percent=True),
+        )
+    )
+
+    # Прибыль итого (накопительно)
+    cumulative = [Decimal("0") for _ in range(n)]
+    running = Decimal("0")
+    for i in range(n):
+        running += profit_amounts[i]
+        cumulative[i] = running
+    rows.append(
+        ReportRow(
+            label="прибыль итого",
+            section="cumulative_profit",
+            level=1,
+            bold=True,
+            skip_percent=True,
+            values=_calc_row(months, revenue, cumulative, skip_percent=True),
+        )
+    )
+
+    # Инвестиции (пустая строка для ручного заполнения)
+    rows.append(
+        ReportRow(
+            label="инвестиции",
+            section="manual",
+            level=1,
+            bold=True,
+            skip_percent=True,
+            values=[RowValue(amount=Decimal("0"), percent=Decimal("0"), raw=False) for _ in range(n)],
+        )
+    )
+
+    return ReportData(
+        months=[label for _, _, label in months],
+        rows=rows,
+    )
+
+
+def report_to_matrix(report: ReportData) -> list[list]:
+    """Преобразует ReportData в матрицу для записи в Google Sheets."""
+    months = report.months
+
+    # Заголовок месяцев: первая ячейка пустая, затем для каждого месяца название (объединяется в два столбца)
+    header1 = [""]
+    for label in months:
+        header1.extend([label, ""])
+
+    header2 = [""]
+    for _ in months:
+        header2.extend(["сумма", "%"])
+
+    matrix = [header1, header2]
+
+    def append_row(row: ReportRow):
+        line = [row.label]
+        for val in row.values:
+            if val.raw:
+                line.append(float(val.amount))
+                if row.skip_percent:
+                    line.append("")
+                else:
+                    line.append(float(val.percent) / 100)  # для процентного формата
+            else:
+                line.append("")
+                line.append("")
+        matrix.append(line)
+        for sub in row.subrows:
+            append_row(sub)
+
+    for row in report.rows:
+        append_row(row)
+
+    return matrix
+
+
+# app\services\scheduler.py
+"""Фоновый планировщик синхронизации с Google Sheets."""
+import logging
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+
+from app.config import settings
+from app.database import SessionLocal
+from app.services.backup import backup_database
+from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
+
+logger = logging.getLogger(__name__)
+
+scheduler = AsyncIOScheduler()
+
+
+def sync_job() -> None:
+    """Задача планировщика: синхронизация операций с Google Sheets."""
+    db = SessionLocal()
+    try:
+        result = sync_operations_to_sheets(db)
+        log_sync_attempt(
+            db,
+            success=True,
+            message="Автоматическая синхронизация завершена успешно",
+            details=result,
+            records_count=result.get("synced"),
+        )
+        logger.info("Автосинхронизация завершена: %s записей", result.get("synced"))
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc)
+        logger.exception("Автосинхронизация не удалась: %s", message)
+        try:
+            log_sync_attempt(
+                db,
+                success=False,
+                message=message,
+                details={"error": message},
+            )
+        except Exception as log_exc:  # noqa: BLE001
+            logger.error("Не удалось записать лог синхронизации: %s", log_exc)
+    finally:
+        db.close()
+
+
+def backup_job() -> None:
+    """Задача планировщика: резервное копирование БД."""
+    try:
+        backup_path = backup_database()
+        if backup_path:
+            logger.info("Автобэкап завершён: %s", backup_path)
+        else:
+            logger.warning("Автобэкап не создан (см. логи выше)")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Автобэкап завершился ошибкой: %s", exc)
+
+
+def setup_scheduler() -> None:
+    """Настраивает периодические задачи синхронизации и резервного копирования."""
+    jobs_added = []
+
+    if settings.SYNC_ENABLED and settings.GOOGLE_SPREADSHEET_ID:
+        scheduler.add_job(
+            sync_job,
+            CronTrigger.from_crontab(settings.SYNC_SCHEDULE),
+            id="sheets_sync",
+            replace_existing=True,
+        )
+        jobs_added.append(f"синхронизация ({settings.SYNC_SCHEDULE})")
+    else:
+        logger.info(
+            "Автосинхронизация отключена (SYNC_ENABLED=%s, GOOGLE_SPREADSHEET_ID=%s)",
+            settings.SYNC_ENABLED,
+            "настроен" if settings.GOOGLE_SPREADSHEET_ID else "не настроен",
+        )
+
+    scheduler.add_job(
+        backup_job,
+        CronTrigger.from_crontab(settings.BACKUP_SCHEDULE),
+        id="database_backup",
+        replace_existing=True,
+    )
+    jobs_added.append(f"бэкап ({settings.BACKUP_SCHEDULE})")
+
+    scheduler.start()
+    logger.info("Планировщик запущен: %s", ", ".join(jobs_added))
+
+
+def shutdown_scheduler() -> None:
+    """Останавливает планировщик."""
+    if scheduler.running:
+        scheduler.shutdown()
+        logger.info("Планировщик остановлен")
+
+
+# app\services\sheets.py
+"""Сервис синхронизации операций с Google Sheets в формате отчёта P&L."""
+import logging
+from pathlib import Path
+
+import gspread
+from sqlalchemy.orm import Session
+
+from app.config import BASE_DIR, settings
+from app.models import SyncLog
+from app.services.report import ReportRow, build_report, report_to_matrix
+
+logger = logging.getLogger(__name__)
+
+PAYMENT_METHOD_LABELS = {
+    "cash": "Нал",
+    "card": "Б/нал",
+    "transfer": "Перевод",
+}
+
+REPORT_SHEET_TITLE = "Отчет"
+
+
+def get_gsheets_client() -> gspread.Client:
+    """Авторизация в Google Sheets через сервисный аккаунт."""
+    sa_path = Path(settings.GOOGLE_SA_FILE)
+    if not sa_path.is_absolute():
+        sa_path = BASE_DIR / sa_path
+    return gspread.service_account(filename=str(sa_path))
+
+
+def log_sync_attempt(
+    db: Session,
+    success: bool,
+    message: str,
+    details: dict | None = None,
+    records_count: int | None = None,
+) -> None:
+    """Сохраняет запись о попытке синхронизации."""
+    db.add(
+        SyncLog(
+            success=success,
+            message=message,
+            details=details,
+            records_count=records_count,
+        )
+    )
+    db.commit()
+
+
+def _get_or_create_worksheet(spreadsheet, title: str, rows: int = 1000, cols: int = 30):
+    try:
+        return spreadsheet.worksheet(title)
+    except gspread.exceptions.WorksheetNotFound:
+        return spreadsheet.add_worksheet(title=title, rows=str(rows), cols=str(cols))
+
+
+def _col_letter(col: int) -> str:
+    """Числовой индекс столбца (1-based) в буквенный (A, B, ..., Z, AA)."""
+    result = ""
+    while col > 0:
+        col, rem = divmod(col - 1, 26)
+        result = chr(65 + rem) + result
+    return result
+
+
+def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
+    """Применяет форматирование к листу отчёта."""
+    months = report.months
+    num_months = len(months)
+    num_data_rows = len(matrix)
+
+    # 1. Объединить ячейки заголовков месяцев (первая строка)
+    # Структура: A1 пустая, B1=месяц1, C1 пустая, D1=месяц2, E1 пустая, ...
+    for i, _ in enumerate(months):
+        start_col = 2 + i * 2
+        end_col = start_col + 1
+        try:
+            worksheet.merge_cells(1, start_col, 1, end_col)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Не удалось объединить ячейки заголовка: %s", exc)
+
+    # 2. Форматирование заголовков (первая и вторая строки)
+    header_range = f"A1:{_col_letter(1 + num_months * 2)}2"
+    try:
+        worksheet.format(
+            header_range,
+            {
+                "textFormat": {"bold": True},
+                "backgroundColor": {"red": 0.85, "green": 0.85, "blue": 0.85},
+                "horizontalAlignment": "CENTER",
+            },
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Не удалось применить форматирование заголовков: %s", exc)
+
+    # 3. Числовые форматы для столбцов сумм и процентов
+    sum_cols = [2 + i * 2 for i in range(num_months)]
+    pct_cols = [3 + i * 2 for i in range(num_months)]
+
+    for col in sum_cols:
+        col_letter = _col_letter(col)
+        try:
+            worksheet.format(
+                f"{col_letter}3:{col_letter}{num_data_rows}",
+                {"numberFormat": {"type": "NUMBER", "pattern": "#,##0.00 ₽"}},
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Не удалось задать формат валюты: %s", exc)
+
+    for col in pct_cols:
+        col_letter = _col_letter(col)
+        try:
+            worksheet.format(
+                f"{col_letter}3:{col_letter}{num_data_rows}",
+                {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}},
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Не удалось задать формат процента: %s", exc)
+
+    # 4. Форматирование строк отчёта (жирный, фон)
+    flat_rows: list[tuple[int, ReportRow]] = []
+
+    def _collect_rows(row: ReportRow, current_idx: int) -> int:
+        flat_rows.append((current_idx, row))
+        current_idx += 1
+        for sub in row.subrows:
+            flat_rows.append((current_idx, sub))
+            current_idx += 1
+        return current_idx
+
+    current = 3
+    for row in report.rows:
+        current = _collect_rows(row, current)
+
+    for row_idx, row in flat_rows:
+        range_a = f"A{row_idx}"
+        try:
+            fmt: dict = {"textFormat": {"bold": row.bold}}
+            if row.background == "yellow":
+                fmt["backgroundColor"] = {"red": 1.0, "green": 0.95, "blue": 0.8}
+            elif row.background == "blue":
+                fmt["backgroundColor"] = {"red": 0.85, "green": 0.92, "blue": 1.0}
+            elif row.background == "green":
+                fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
+
+            worksheet.format(range_a, fmt)
+
+            if row.bold:
+                row_end_col = _col_letter(1 + num_months * 2)
+                worksheet.format(
+                    f"A{row_idx}:{row_end_col}{row_idx}",
+                    {"textFormat": {"bold": True}},
+                )
+            elif row.section in {"direct", "overhead"} and row.level >= 2:
+                worksheet.format(range_a, {"textFormat": {"italic": True}})
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Не удалось применить форматирование строки %s: %s", row_idx, exc)
+
+    # 5. Ширина столбцов
+    try:
+        worksheet.columns_auto_resize(1, 1 + num_months * 2)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
+
+
+def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
+    """Выгружает отчёт P&L в Google Таблицу.
+
+    Возвращает словарь с результатами синхронизации.
+    """
+    spreadsheet_id = spreadsheet_id or settings.GOOGLE_SPREADSHEET_ID
+    if not spreadsheet_id:
+        raise ValueError("GOOGLE_SPREADSHEET_ID не настроен")
+
+    try:
+        client = get_gsheets_client()
+        spreadsheet = client.open_by_key(spreadsheet_id)
+
+        worksheet = _get_or_create_worksheet(spreadsheet, REPORT_SHEET_TITLE)
+
+        report = build_report(db)
+        matrix = report_to_matrix(report)
+
+        # Очищаем лист и записываем данные
+        worksheet.clear()
+        worksheet.update(matrix)
+
+        # Применяем форматирование
+        _format_report_sheet(worksheet, report, matrix)
+
+        return {
+            "synced": sum(1 for _ in matrix) - 2,  # примерное количество строк данных
+            "spreadsheet_id": spreadsheet_id,
+            "sheet_title": REPORT_SHEET_TITLE,
+            "months": report.months,
+        }
+
+    except gspread.exceptions.APIError as exc:
+        logger.exception("Ошибка Google Sheets API")
+        raise RuntimeError(f"Ошибка Google Sheets API: {exc}") from exc
+    except Exception as exc:
+        logger.exception("Ошибка синхронизации с Google Sheets")
+        raise RuntimeError(f"Ошибка синхронизации: {exc}") from exc
+
+
+# app\static\css\style.css
+:root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --text: #212529;
+    --muted: #6c757d;
+    --primary: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --danger: #dc3545;
+    --danger-hover: #bb2d3b;
+    --border: #dee2e6;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    box-shadow: var(--shadow);
+}
+
+.brand {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+h1, h2 {
+    margin: 0 0 1rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 0.35rem;
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: var(--bg);
+}
+
+.btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover);
+}
+
+.btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+.form-card,
+.filters,
+.placeholder {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.form-card label,
+.filters label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.form-card input,
+.form-card select,
+.form-card textarea,
+.filters input,
+.filters select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 0.35rem;
+    font: inherit;
+    font-size: 1rem;
+    margin-top: 0.25rem;
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-end;
+}
+
+.form-row label {
+    flex: 1 1 160px;
+    margin-bottom: 0;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.flags label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+}
+
+.flags input {
+    width: auto;
+    margin: 0;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 640px;
+}
+
+th, td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    background: var(--bg);
+    font-weight: 600;
+}
+
+.numeric {
+    text-align: right;
+}
+
+.actions {
+    display: flex;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.empty {
+    text-align: center;
+    color: var(--muted);
+}
+
+.inline {
+    display: inline;
+}
+
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 0.3rem;
+    margin-bottom: 1rem;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+}
+
+.alert-success {
+    background: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.conditional-block {
+    margin-bottom: 0.75rem;
+}
+
+.products-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.products-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+#products-table input,
+#products-table select {
+    min-width: 80px;
+}
+
+.category-tree {
+    list-style: none;
+    padding-left: 0;
+}
+
+.category-tree ul {
+    list-style: none;
+    padding-left: 1.5rem;
+    border-left: 1px dashed var(--border);
+    margin: 0.25rem 0 0.5rem;
+}
+
+.category-tree li {
+    margin-bottom: 0.5rem;
+}
+
+.category-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.category-name {
+    font-weight: 500;
+}
+
+.category-kind {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.category-flags {
+    margin-left: 0.2rem;
+}
+
+.category-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.3rem;
+}
+
+.edit-form {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.inline-edit {
+    padding: 0.75rem;
+    margin: 0;
+}
+
+.edit-row td {
+    padding: 0;
+    border-bottom: none;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+}
+
+.two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+.login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.login-card h1 {
+    margin-bottom: 0.25rem;
+}
+
+.login-card p {
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--muted);
+    padding: 3rem 1rem;
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: block;
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 3.6rem;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.5rem 1rem;
+        box-shadow: var(--shadow);
+        z-index: 100;
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .nav-links li {
+        margin: 0.25rem 0;
+    }
+
+    .nav-links a {
+        display: block;
+        padding: 0.6rem 0;
+        min-height: 44px;
+    }
+
+    .container {
+        padding: 0.75rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .two-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-row label {
+        flex: none;
+        width: 100%;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    .actions {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+
+    .actions .btn {
+        width: 100%;
+    }
+
+    .category-actions {
+        width: 100%;
+        margin-top: 0.3rem;
+    }
+
+    .category-actions .btn {
+        flex: 1;
+    }
+
+    table {
+        min-width: 640px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .products-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    #products-table {
+        min-width: 500px;
+    }
+}
+
+@media (max-width: 375px) {
+    .brand {
+        font-size: 1.1rem;
+    }
+
+    h1 {
+        font-size: 1.35rem;
+    }
+
+    .form-card,
+    .filters {
+        padding: 0.75rem;
+    }
+}
+
+
+# app\static\js\app.js
+"use strict";
+
+function confirmDelete() {
+    return confirm("Удалить запись?");
+}
+
+(function () {
+    const menuToggle = document.querySelector(".menu-toggle");
+    const navLinks = document.querySelector(".nav-links");
+
+    if (menuToggle && navLinks) {
+        menuToggle.addEventListener("click", (event) => {
+            event.stopPropagation();
+            navLinks.classList.toggle("open");
+        });
+
+        document.addEventListener("click", (event) => {
+            if (navLinks.classList.contains("open") && !navLinks.contains(event.target) && event.target !== menuToggle) {
+                navLinks.classList.remove("open");
+            }
+        });
+    }
+})();
+
+
+# app\static\js\charts.js
+/** Графики статистики на Chart.js. */
+
+const PAYMENT_LABELS = {
+  cash: "Нал",
+  card: "Б/нал",
+  transfer: "Перевод",
+};
+
+const COLORS = [
+  "#0d6efd",
+  "#20c997",
+  "#dc3545",
+  "#fd7e14",
+  "#6610f2",
+  "#0dcaf0",
+  "#198754",
+  "#d63384",
+  "#6f42c1",
+  "#adb5bd",
+];
+
+let periodChart = null;
+let categoryChart = null;
+let paymentChart = null;
+
+function formatMoney(value) {
+  const num = Number(value);
+  return Number.isFinite(num)
+    ? num.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : value;
+}
+
+async function loadFilters() {
+  try {
+    const res = await fetch("/api/stats/filters");
+    if (!res.ok) throw new Error("Ошибка загрузки фильтров");
+    const data = await res.json();
+
+    const categorySelect = document.getElementById("filter-category");
+    categorySelect.innerHTML = '<option value="">Все категории</option>';
+    for (const cat of data.categories) {
+      const option = document.createElement("option");
+      option.value = cat.id;
+      option.textContent = `${cat.name} (${cat.kind === "income" ? "доход" : "расход"})`;
+      categorySelect.appendChild(option);
+    }
+
+    const paymentSelect = document.getElementById("filter-payment");
+    paymentSelect.innerHTML = '<option value="">Все</option>';
+    for (const pm of data.payment_methods) {
+      const option = document.createElement("option");
+      option.value = pm.value;
+      option.textContent = pm.label;
+      paymentSelect.appendChild(option);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function buildQueryParams() {
+  const params = new URLSearchParams();
+  const kind = document.getElementById("filter-kind").value;
+  const categoryId = document.getElementById("filter-category").value;
+  const dateFrom = document.getElementById("filter-date-from").value;
+  const dateTo = document.getElementById("filter-date-to").value;
+  const payment = document.getElementById("filter-payment").value;
+
+  if (kind) params.set("kind", kind);
+  if (categoryId) params.set("category_id", categoryId);
+  if (dateFrom) params.set("date_from", dateFrom);
+  if (dateTo) params.set("date_to", dateTo);
+  if (payment) params.set("payment_method", payment);
+  return params;
+}
+
+function hasData(data) {
+  return (
+    data.by_period.length > 0 ||
+    data.by_category.length > 0 ||
+    data.by_payment.length > 0
+  );
+}
+
+function destroyCharts() {
+  if (periodChart) {
+    periodChart.destroy();
+    periodChart = null;
+  }
+  if (categoryChart) {
+    categoryChart.destroy();
+    categoryChart = null;
+  }
+  if (paymentChart) {
+    paymentChart.destroy();
+    paymentChart = null;
+  }
+}
+
+function renderPeriodChart(data) {
+  const ctx = document.getElementById("period-chart").getContext("2d");
+  const labels = data.by_period.map((row) => row.period);
+  const income = data.by_period.map((row) => Number(row.income));
+  const expense = data.by_period.map((row) => Number(row.expense));
+
+  periodChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Доход",
+          data: income,
+          backgroundColor: "#198754",
+        },
+        {
+          label: "Расход",
+          data: expense,
+          backgroundColor: "#dc3545",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true },
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${formatMoney(ctx.raw)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderCategoryChart(data) {
+  const ctx = document.getElementById("category-chart").getContext("2d");
+  const labels = data.by_category.map((row) => row.category);
+  const values = data.by_category.map((row) => Number(row.amount));
+  const colors = labels.map((_, i) => COLORS[i % COLORS.length]);
+
+  categoryChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [
+        {
+          data: values,
+          backgroundColor: colors,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${formatMoney(ctx.raw)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderPaymentChart(data) {
+  const ctx = document.getElementById("payment-chart").getContext("2d");
+  const labels = data.by_payment.map((row) => row.label);
+  const values = data.by_payment.map((row) => Number(row.amount));
+
+  paymentChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Доход",
+          data: values,
+          backgroundColor: "#0d6efd",
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true },
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${formatMoney(ctx.raw)}`,
+          },
+        },
+      },
+    },
+  });
+}
+
+async function loadData() {
+  const params = buildQueryParams();
+  try {
+    const res = await fetch(`/api/stats/data?${params.toString()}`);
+    if (!res.ok) throw new Error("Ошибка загрузки данных");
+    const data = await res.json();
+
+    document.getElementById("total-income").textContent = formatMoney(data.totals.income);
+    document.getElementById("total-expense").textContent = formatMoney(data.totals.expense);
+    document.getElementById("total-balance").textContent = formatMoney(data.totals.balance);
+
+    destroyCharts();
+
+    if (!hasData(data)) {
+      document.getElementById("no-data").classList.remove("hidden");
+      document.getElementById("charts-container").classList.add("hidden");
+      return;
+    }
+
+    document.getElementById("no-data").classList.add("hidden");
+    document.getElementById("charts-container").classList.remove("hidden");
+
+    if (data.by_period.length > 0) renderPeriodChart(data);
+    if (data.by_category.length > 0) renderCategoryChart(data);
+    if (data.by_payment.length > 0) renderPaymentChart(data);
+  } catch (err) {
+    console.error(err);
+    alert("Не удалось загрузить данные для графиков");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadFilters().then(loadData);
+  document.getElementById("btn-apply").addEventListener("click", loadData);
+});
+
+
+# app\static\js\forms.js
+"use strict";
+
+(function () {
+    const kindSelect = document.getElementById("kind-select");
+    const categorySelect = document.getElementById("category-select");
+    const subcategoryLabel = document.getElementById("subcategory-label");
+    const subcategorySelect = document.getElementById("subcategory-select");
+    const supplierSelect = document.getElementById("supplier-select");
+    const productsTbody = document.getElementById("products-tbody");
+    const addProductRowBtn = document.getElementById("add-product-row");
+    const productRowTemplate = document.getElementById("product-row-template");
+
+    const blocks = {
+        guests: document.getElementById("guests-block"),
+        payment: document.getElementById("payment-block"),
+        supplier: document.getElementById("supplier-block"),
+        employee: document.getElementById("employee-block"),
+        responsible: document.getElementById("responsible-block"),
+        products: document.getElementById("products-block"),
+    };
+
+    let categoryTree = [];
+    let products = [];
+    let productPrices = [];
+    let rowIndex = 0;
+
+    function findCategoryById(id) {
+        const search = (nodes) => {
+            for (const node of nodes) {
+                if (node.id === id) return node;
+                if (node.children && node.children.length) {
+                    const found = search(node.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(categoryTree);
+    }
+
+    async function loadCategories(kind) {
+        const res = await fetch(`/api/categories?kind=${kind}&tree=1`);
+        categoryTree = await res.json();
+        const currentValue = categorySelect.value;
+        categorySelect.innerHTML = '<option value="">—</option>';
+        categoryTree.forEach((cat) => {
+            const option = document.createElement("option");
+            option.value = cat.id;
+            option.textContent = cat.name;
+            option.dataset.hasChildren = cat.children && cat.children.length > 0;
+            categorySelect.appendChild(option);
+        });
+        categorySelect.value = currentValue;
+    }
+
+    async function loadProducts() {
+        const res = await fetch("/api/products?active=true");
+        products = await res.json();
+        document.querySelectorAll(".product-select").forEach((select) => {
+            const current = select.value;
+            fillProductSelect(select);
+            select.value = current;
+        });
+    }
+
+    async function loadProductPrices() {
+        const supplierId = supplierSelect.value;
+        if (!supplierId) {
+            productPrices = [];
+            return;
+        }
+        const res = await fetch(`/api/product-prices?supplier_id=${supplierId}`);
+        productPrices = await res.json();
+    }
+
+    function fillProductSelect(select) {
+        const current = select.value;
+        select.innerHTML = '<option value="">— выберите продукт —</option><option value="custom">Свой вариант</option>';
+        products.forEach((product) => {
+            const option = document.createElement("option");
+            option.value = product.id;
+            option.textContent = product.name;
+            select.appendChild(option);
+        });
+        if (current) select.value = current;
+    }
+
+    function getPriceForProduct(productId) {
+        const price = productPrices.find((p) => p.product_id === Number(productId));
+        return price ? price.price : "";
+    }
+
+    function updateSubcategories() {
+        const categoryId = Number(categorySelect.value);
+        const category = findCategoryById(categoryId);
+        if (category && category.children && category.children.length) {
+            subcategoryLabel.style.display = "block";
+            subcategorySelect.disabled = false;
+            categorySelect.disabled = true;
+            subcategorySelect.innerHTML = '<option value="">—</option>';
+            category.children.forEach((child) => {
+                const option = document.createElement("option");
+                option.value = child.id;
+                option.textContent = child.name;
+                subcategorySelect.appendChild(option);
+            });
+        } else {
+            subcategoryLabel.style.display = "none";
+            subcategorySelect.disabled = true;
+            categorySelect.disabled = false;
+            subcategorySelect.innerHTML = '<option value="">—</option>';
+            updateVisibility(category);
+        }
+    }
+
+    function updateVisibility(category) {
+        if (!category) {
+            Object.values(blocks).forEach((el) => (el.style.display = "none"));
+            return;
+        }
+        blocks.guests.style.display = category.requires_guests ? "block" : "none";
+        const kind = kindSelect.value;
+        blocks.payment.style.display = category.requires_payment_method && kind === "income" ? "block" : "none";
+        blocks.supplier.style.display = category.requires_supplier ? "block" : "none";
+        blocks.employee.style.display = category.requires_employee ? "block" : "none";
+        blocks.responsible.style.display = category.requires_responsible ? "block" : "none";
+        blocks.products.style.display = category.requires_products ? "block" : "none";
+    }
+
+    function addProductRow(data) {
+        const clone = productRowTemplate.content.cloneNode(true);
+        const row = clone.querySelector("tr");
+        const idx = rowIndex++;
+        row.dataset.index = idx;
+        row.querySelectorAll("[name]").forEach((el) => {
+            el.name = el.name.replace("__IDX__", idx);
+        });
+
+        const productSelect = row.querySelector(".product-select");
+        const customInput = row.querySelector(".custom-name");
+        const priceInput = row.querySelector(".price-input");
+        const unitInput = row.querySelector(".unit-input");
+
+        fillProductSelect(productSelect);
+
+        productSelect.addEventListener("change", () => {
+            if (productSelect.value === "custom") {
+                customInput.disabled = false;
+                customInput.focus();
+                priceInput.value = "";
+            } else {
+                customInput.disabled = true;
+                customInput.value = "";
+                const product = products.find((p) => p.id === Number(productSelect.value));
+                if (product) {
+                    unitInput.value = product.unit;
+                    const price = getPriceForProduct(product.id);
+                    if (price !== "") priceInput.value = price;
+                }
+            }
+        });
+
+        row.querySelector(".remove-row").addEventListener("click", () => {
+            row.remove();
+            recalculateAmount();
+        });
+
+        row.querySelector(".price-input").addEventListener("input", recalculateAmount);
+        row.querySelector(".quantity-input").addEventListener("input", recalculateAmount);
+
+        if (data) {
+            if (data.product_id) {
+                productSelect.value = data.product_id;
+                const product = products.find((p) => p.id === data.product_id);
+                if (product) unitInput.value = data.unit || product.unit;
+            } else {
+                productSelect.value = "custom";
+                customInput.disabled = false;
+                customInput.value = data.name || "";
+            }
+            priceInput.value = data.price || "";
+            unitInput.value = data.unit || "шт";
+            row.querySelector(".quantity-input").value = data.quantity || 1;
+        }
+
+        productsTbody.appendChild(row);
+        recalculateAmount();
+    }
+
+    function recalculateAmount() {
+        const categoryId = Number(subcategorySelect.disabled ? categorySelect.value : subcategorySelect.value);
+        const category = findCategoryById(categoryId);
+        if (!category || !category.requires_products) return;
+        if (kindSelect.value !== "expense") return;
+
+        let total = 0;
+        document.querySelectorAll(".product-row").forEach((row) => {
+            const price = parseFloat(row.querySelector(".price-input").value) || 0;
+            const qty = parseFloat(row.querySelector(".quantity-input").value) || 0;
+            total += price * qty;
+        });
+        const amountInput = document.getElementById("amount-input");
+        if (!amountInput.value) {
+            amountInput.value = total.toFixed(2);
+        }
+    }
+
+    async function initEditMode() {
+        const op = window.ERP_FORM.operation;
+        if (!op) return;
+
+        await loadCategories(op.kind);
+        const category = findCategoryById(op.category_id);
+        if (!category) return;
+
+        if (category.parent_id) {
+            categorySelect.value = category.parent_id;
+            updateSubcategories();
+            subcategorySelect.value = op.category_id;
+        } else {
+            categorySelect.value = op.category_id;
+            updateSubcategories();
+        }
+
+        const activeCategory = subcategorySelect.disabled ? category : findCategoryById(Number(subcategorySelect.value));
+        updateVisibility(activeCategory);
+
+        if (activeCategory && activeCategory.requires_products && op.items) {
+            await loadProductPrices();
+            op.items.forEach((item) => addProductRow(item));
+        }
+    }
+
+    async function initCreateMode() {
+        await loadCategories(kindSelect.value);
+    }
+
+    kindSelect.addEventListener("change", async () => {
+        categorySelect.value = "";
+        subcategorySelect.innerHTML = '<option value="">—</option>';
+        subcategoryLabel.style.display = "none";
+        subcategorySelect.disabled = true;
+        categorySelect.disabled = false;
+        updateVisibility(null);
+        await loadCategories(kindSelect.value);
+    });
+
+    categorySelect.addEventListener("change", () => {
+        updateSubcategories();
+        const categoryId = Number(categorySelect.value);
+        const category = findCategoryById(categoryId);
+        if (category && (!category.children || !category.children.length)) {
+            updateVisibility(category);
+        }
+    });
+
+    subcategorySelect.addEventListener("change", () => {
+        const categoryId = Number(subcategorySelect.value);
+        const category = findCategoryById(categoryId);
+        updateVisibility(category);
+    });
+
+    supplierSelect.addEventListener("change", async () => {
+        await loadProductPrices();
+        document.querySelectorAll(".product-select").forEach((select) => {
+            if (select.value && select.value !== "custom") {
+                const row = select.closest("tr");
+                const price = getPriceForProduct(Number(select.value));
+                if (price !== "") row.querySelector(".price-input").value = price;
+            }
+        });
+    });
+
+    addProductRowBtn.addEventListener("click", () => addProductRow());
+
+    async function init() {
+        await loadProducts();
+        if (window.ERP_FORM && window.ERP_FORM.operation) {
+            await initEditMode();
+        } else {
+            await initCreateMode();
+        }
+    }
+
+    init();
+})();
+
+
+# tests\conftest.py
+"""Фикстуры для pytest: изолированная тестовая БД."""
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.database import Base
+
+
+@pytest.fixture
+def client(monkeypatch, tmp_path):
+    """Создаёт приложение с временной SQLite-базой."""
+    db_path = tmp_path / "test.db"
+    engine = create_engine(f"sqlite:///{db_path}")
+    TestingSessionLocal = sessionmaker(bind=engine)
+
+    # Подменяем engine/SessionLocal до импорта app.main, чтобы startup-евент
+    # и зависимости работали с тестовой базой.
+    import app.database as database_module
+
+    monkeypatch.setattr(database_module, "engine", engine)
+    monkeypatch.setattr(database_module, "SessionLocal", TestingSessionLocal)
+
+    from app import main
+    from app.deps import get_db
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    main.app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(main.app) as test_client:
+        yield test_client
+
+    main.app.dependency_overrides.clear()
+
+
+# tests\test_backup.py
+"""Тесты сервиса резервного копирования."""
+from pathlib import Path
+
+from app.config import settings
+from app.services.backup import backup_database, list_backups, restore_database
+
+
+def test_backup_database_creates_copy(client, monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    backup_dir = tmp_path / "backups"
+
+    # Создаём файл БД
+    db_path.write_text("sqlite test db")
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setattr(settings, "BACKUP_DIR", str(backup_dir))
+    monkeypatch.setattr(settings, "BACKUP_KEEP", 7)
+
+    backup_path = backup_database()
+
+    assert backup_path is not None
+    assert backup_path.exists()
+    assert backup_path.parent == backup_dir
+    assert backup_path.suffix == ".db"
+    assert backup_path.read_text() == "sqlite test db"
+
+
+def test_backup_rotation_keeps_only_backup_keep(client, monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    backup_dir = tmp_path / "backups"
+    db_path.write_text("sqlite test db")
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setattr(settings, "BACKUP_DIR", str(backup_dir))
+    monkeypatch.setattr(settings, "BACKUP_KEEP", 3)
+
+    created: list[Path] = []
+    for _ in range(settings.BACKUP_KEEP + 1):
+        path = backup_database()
+        assert path is not None
+        created.append(path)
+
+    backups = list_backups()
+    assert len(backups) == settings.BACKUP_KEEP
+    assert created[-1] in backups  # последняя копия должна остаться
+    assert created[0] not in backups  # самая старая должна быть удалена
+
+
+def test_restore_database_replaces_current_db(client, monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    backup_dir = tmp_path / "backups"
+    db_path.write_text("current data")
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setattr(settings, "BACKUP_DIR", str(backup_dir))
+
+    backup_path = backup_database()
+    assert backup_path is not None
+
+    db_path.write_text("corrupted data")
+    restore_database(backup_path)
+
+    assert db_path.read_text() == "current data"
+
+
+def test_backup_page_requires_auth(client):
+    response = client.get("/backups", follow_redirects=False)
+    assert response.status_code == 302
+
+
+def test_backup_page(client):
+    client.post("/login", data={"password": "admin"})
+    response = client.get("/backups")
+    assert response.status_code == 200
+    assert "Бэкапы" in response.text
+
+
+def test_api_backups(client, monkeypatch, tmp_path):
+    db_path = tmp_path / "app.db"
+    backup_dir = tmp_path / "backups"
+    db_path.write_text("sqlite test db")
+
+    monkeypatch.setattr(settings, "DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setattr(settings, "BACKUP_DIR", str(backup_dir))
+
+    backup_database()
+
+    client.post("/login", data={"password": "admin"})
+    response = client.get("/api/backups")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["filename"].startswith("app_")
+    assert data[0]["size_bytes"] > 0
+
+
+# tests\test_e2e.py
+"""Функциональное E2E-тестирование основного сценария."""
+from datetime import date
+
+
+def _find_category(client, kind, name):
+    response = client.get(f"/api/categories?kind={kind}")
+    assert response.status_code == 200
+    for category in response.json():
+        if category["name"] == name:
+            return category["id"]
+    raise AssertionError(f"Категория {name!r} не найдена")
+
+
+def test_full_workflow(client):
+    # 1. Логин
+    login_response = client.post("/login", data={"password": "admin"}, follow_redirects=False)
+    assert login_response.status_code == 302
+    assert "session" in login_response.cookies
+
+    # 2. Создание категории
+    category_response = client.post(
+        "/api/categories",
+        json={"name": "E2E категория", "kind": "expense", "requires_products": True},
+    )
+    assert category_response.status_code in (200, 201)
+    category_id = category_response.json()["id"]
+
+    # 3. Создание поставщика
+    supplier_response = client.post("/api/suppliers", json={"name": "E2E поставщик"})
+    assert supplier_response.status_code in (200, 201)
+    supplier_id = supplier_response.json()["id"]
+
+    # 4. Создание продукта
+    product_response = client.post("/api/products", json={"name": "E2E продукт", "unit": "кг"})
+    assert product_response.status_code in (200, 201)
+    product_id = product_response.json()["id"]
+
+    # 5. Создание доходной операции (Лавка)
+    lavka_id = _find_category(client, "income", "Лавка")
+    income_response = client.post(
+        "/api/operations",
+        json={
+            "date": "2024-07-01",
+            "kind": "income",
+            "category_id": lavka_id,
+            "amount": "5000.00",
+            "comment": "E2E лавка",
+            "payment_method": "cash",
+        },
+    )
+    assert income_response.status_code == 201
+    income_id = income_response.json()["id"]
+
+    # 6. Создание расходной операции с продуктами
+    expense_response = client.post(
+        "/operations",
+        data={
+            "date": "2024-07-02",
+            "kind": "expense",
+            "category_id": category_id,
+            "amount": "0",
+            "comment": "E2E закупка",
+            "supplier_id": supplier_id,
+            "items[0][product_id]": product_id,
+            "items[0][name]": "E2E продукт",
+            "items[0][price]": "250.00",
+            "items[0][quantity]": "3",
+            "items[0][unit]": "кг",
+        },
+        follow_redirects=False,
+    )
+    assert expense_response.status_code == 302
+    assert expense_response.headers["location"] == "/operations"
+
+    operations = client.get("/api/operations").json()
+    expense_op = next((o for o in operations if o["comment"] == "E2E закупка"), None)
+    assert expense_op is not None
+    assert expense_op["amount"] == "750.00"
+    assert len(expense_op["items"]) == 1
+    assert expense_op["items"][0]["name"] == "E2E продукт"
+
+    # 7. Редактирование операции
+    edit_response = client.post(
+        f"/operations/{expense_op['id']}",
+        data={
+            "date": "2024-07-02",
+            "kind": "expense",
+            "category_id": category_id,
+            "amount": "0",
+            "comment": "E2E закупка обновлена",
+            "supplier_id": supplier_id,
+            "items[0][product_id]": product_id,
+            "items[0][name]": "E2E продукт",
+            "items[0][price]": "300.00",
+            "items[0][quantity]": "2",
+            "items[0][unit]": "кг",
+        },
+        follow_redirects=False,
+    )
+    assert edit_response.status_code == 302
+
+    updated = client.get(f"/api/operations/{expense_op['id']}").json()
+    assert updated["amount"] == "600.00"
+    assert updated["comment"] == "E2E закупка обновлена"
+
+    # 8. Проверка /api/stats/data
+    stats_response = client.get("/api/stats/data?kind=all")
+    assert stats_response.status_code == 200
+    stats = stats_response.json()
+    assert stats["totals"]["income"] == "5000.00"
+    assert stats["totals"]["expense"] == "600.00"
+    assert stats["totals"]["balance"] == "4400.00"
+    assert any(c["category"] == "E2E категория" for c in stats["by_category"])
+
+    # 9. Удаление операции
+    delete_response = client.post(
+        f"/operations/{income_id}/delete", follow_redirects=False
+    )
+    assert delete_response.status_code == 302
+
+    final_operations = client.get("/api/operations").json()
+    assert not any(o["id"] == income_id for o in final_operations)
+
+
+# tests\test_report.py
+"""Тесты генерации отчёта P&L."""
+import app.database as database_module
+from app.services.report import build_report, report_to_matrix
+
+
+def _find_category_id(client, kind, name):
+    response = client.get(f"/api/categories?kind={kind}")
+    assert response.status_code == 200
+    for category in response.json():
+        if category["name"] == name:
+            return category["id"]
+    raise AssertionError(f"Категория {name!r} не найдена")
+
+
+def test_build_report_totals(client):
+    client.post("/login", data={"password": "admin"})
+
+    lavka_id = _find_category_id(client, "income", "Лавка")
+    products_id = _find_category_id(client, "expense", "Закупка продуктов")
+    wifi_id = _find_category_id(client, "expense", "WiFi")
+    taxes_id = _find_category_id(client, "expense", "Налоги и сборы")
+
+    # Доход
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-06-15",
+            "kind": "income",
+            "category_id": lavka_id,
+            "amount": "1000.00",
+            "payment_method": "cash",
+        },
+    )
+
+    # Расходы
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-06-20",
+            "kind": "expense",
+            "category_id": products_id,
+            "amount": "300.00",
+            "comment": "продукты",
+        },
+    )
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-06-21",
+            "kind": "expense",
+            "category_id": wifi_id,
+            "amount": "100.00",
+        },
+    )
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-06-22",
+            "kind": "expense",
+            "category_id": taxes_id,
+            "amount": "50.00",
+        },
+    )
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+    finally:
+        db.close()
+
+    assert report.months == ["июнь"]
+
+    rows_by_label = {row.label: row for row in report.rows}
+
+    revenue_total = rows_by_label["Выручка всего"]
+    assert revenue_total.values[0].amount == 1000
+    assert revenue_total.values[0].percent == 100
+
+    lavka_row = rows_by_label["Выручка лавка"]
+    assert lavka_row.values[0].amount == 1000
+    assert lavka_row.values[0].percent == 100
+
+    direct_total = rows_by_label["Прямые расходы всего"]
+    assert direct_total.values[0].amount == 300
+    assert direct_total.values[0].percent == 30
+
+    overhead_total = rows_by_label["Накладные расходы всего"]
+    assert overhead_total.values[0].amount == 100
+    assert overhead_total.values[0].percent == 10
+
+    taxes_row = rows_by_label["Налоги и сборы"]
+    assert taxes_row.values[0].amount == 50
+    assert taxes_row.values[0].percent == 5
+
+    profit_row = rows_by_label["Прибыль"]
+    assert profit_row.values[0].amount == 550
+
+    cumulative_row = rows_by_label["прибыль итого"]
+    assert cumulative_row.values[0].amount == 550
+
+
+def test_report_matrix_shape(client):
+    client.post("/login", data={"password": "admin"})
+
+    lavka_id = _find_category_id(client, "income", "Лавка")
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-07-01",
+            "kind": "income",
+            "category_id": lavka_id,
+            "amount": "500.00",
+            "payment_method": "cash",
+        },
+    )
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+        matrix = report_to_matrix(report)
+    finally:
+        db.close()
+
+    # Первая строка: пустая + по 2 ячейки на месяц
+    assert len(matrix[0]) == 1 + len(report.months) * 2
+    # Вторая строка: пустая + сумма/%
+    assert matrix[1][1] == "сумма"
+    assert matrix[1][2] == "%"
+    # Хотя бы одна строка данных
+    assert len(matrix) > 2
+
+
+# tests\test_smoke.py
+"""Дымовые тесты основных сценариев."""
+
+
+def test_health(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["database"] == "ok"
+
+
+def test_operations_redirects_when_unauthorized(client):
+    response = client.get("/operations", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/login"
+
+
+def test_login_and_operations(client):
+    response = client.post("/login", data={"password": "admin"}, follow_redirects=False)
+    assert response.status_code == 302
+    assert "session" in response.cookies
+
+    response = client.get("/operations")
+    assert response.status_code == 200
+    assert "Операции" in response.text
+
+
+def test_api_create_category(client):
+    client.post("/login", data={"password": "admin"})
+
+    response = client.post("/api/categories", json={"name": "Тест", "kind": "expense"})
+    assert response.status_code in (200, 201)
+
+    data = response.json()
+    assert data["name"] == "Тест"
+    assert data["kind"] == "expense"
+
+
+def test_api_create_operation(client):
+    client.post("/login", data={"password": "admin"})
+
+    category_response = client.post(
+        "/api/categories", json={"name": "Тест операции", "kind": "income"}
+    )
+    category_id = category_response.json()["id"]
+
+    response = client.post(
+        "/api/operations",
+        json={
+            "date": "2024-01-01",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "100.00",
+            "comment": "тестовая операция",
+        },
+    )
+    assert response.status_code == 201
+
+    data = response.json()
+    assert data["amount"] == "100.00"
+    assert data["comment"] == "тестовая операция"
+    assert data["category_id"] == category_id
+
+
+def _find_category(client, kind, name):
+    response = client.get(f"/api/categories?kind={kind}")
+    assert response.status_code == 200
+    for category in response.json():
+        if category["name"] == name:
+            return category["id"]
+    raise AssertionError(f"Категория {name!r} не найдена")
+
+
+def test_create_income_operation_lavka(client):
+    client.post("/login", data={"password": "admin"})
+
+    category_id = _find_category(client, "income", "Лавка")
+
+    response = client.post(
+        "/operations",
+        data={
+            "date": "2024-06-15",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "1500.00",
+            "comment": "Лавка вечер",
+            "guests_count": "5",
+            "payment_method": "cash",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == "/operations"
+
+    list_response = client.get("/operations")
+    assert list_response.status_code == 200
+    assert "Лавка" in list_response.text
+    assert "1500,00" in list_response.text or "1500.00" in list_response.text
+
+
+def test_create_expense_operation_with_products(client):
+    client.post("/login", data={"password": "admin"})
+
+    parent_id = _find_category(client, "expense", "Закупка продуктов")
+    child_id = _find_category(client, "expense", "Мясо и рыба")
+
+    supplier_response = client.post("/api/suppliers", json={"name": "Поставщик тест"})
+    supplier_id = supplier_response.json()["id"]
+
+    product_1 = client.post("/api/products", json={"name": "Сёмга", "unit": "кг"}).json()["id"]
+    product_2 = client.post("/api/products", json={"name": "Говядина", "unit": "кг"}).json()["id"]
+
+    response = client.post(
+        "/operations",
+        data={
+            "date": "2024-06-15",
+            "kind": "expense",
+            "category_id": child_id,
+            "amount": "0",
+            "comment": "Закупка мяса и рыбы",
+            "supplier_id": supplier_id,
+            "items[0][product_id]": product_1,
+            "items[0][name]": "Сёмга",
+            "items[0][price]": "800.00",
+            "items[0][quantity]": "2",
+            "items[0][unit]": "кг",
+            "items[1][product_id]": product_2,
+            "items[1][name]": "Говядина",
+            "items[1][price]": "1200.00",
+            "items[1][quantity]": "1.5",
+            "items[1][unit]": "кг",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    assert response.headers["location"] == "/operations"
+
+    detail = client.get("/api/operations").json()
+    op = next((o for o in detail if o["category_id"] == child_id), None)
+    assert op is not None
+    assert op["amount"] == "3400.00"
+    assert len(op["items"]) == 2
+
+
+def test_edit_and_delete_operation(client):
+    client.post("/login", data={"password": "admin"})
+
+    category_id = _find_category(client, "income", "Открытые события")
+
+    create_response = client.post(
+        "/operations",
+        data={
+            "date": "2024-06-15",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "500.00",
+            "comment": "Старый коммент",
+            "guests_count": "10",
+            "payment_method": "card",
+        },
+        follow_redirects=False,
+    )
+    assert create_response.status_code == 302
+
+    operations = client.get("/api/operations").json()
+    op = next((o for o in operations if o["comment"] == "Старый коммент"), None)
+    assert op is not None
+
+    edit_response = client.post(
+        f"/operations/{op['id']}",
+        data={
+            "date": "2024-06-15",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "750.00",
+            "comment": "Новый коммент",
+            "guests_count": "10",
+            "payment_method": "card",
+        },
+        follow_redirects=False,
+    )
+    assert edit_response.status_code == 302
+
+    updated = client.get(f"/api/operations").json()
+    updated_op = next((o for o in updated if o["id"] == op["id"]), None)
+    assert updated_op["amount"] == "750.00"
+    assert updated_op["comment"] == "Новый коммент"
+
+    delete_response = client.post(
+        f"/operations/{op['id']}/delete", follow_redirects=False
+    )
+    assert delete_response.status_code == 302
+
+    final = client.get("/api/operations").json()
+    assert not any(o["id"] == op["id"] for o in final)
+
+
+# tests\test_stats.py
+"""Тесты API статистики и графиков."""
+
+
+def _find_category(client, kind, name):
+    response = client.get(f"/api/categories?kind={kind}")
+    assert response.status_code == 200
+    for category in response.json():
+        if category["name"] == name:
+            return category["id"]
+    raise AssertionError(f"Категория {name!r} не найдена")
+
+
+def test_stats_page_requires_auth(client):
+    response = client.get("/stats", follow_redirects=False)
+    assert response.status_code == 302
+
+
+def test_stats_page(client):
+    client.post("/login", data={"password": "admin"})
+    response = client.get("/stats")
+    assert response.status_code == 200
+    assert "Графики" in response.text
+
+
+def test_api_stats_data_structure(client):
+    client.post("/login", data={"password": "admin"})
+
+    category_response = client.post(
+        "/api/categories", json={"name": "Тест доход", "kind": "income"}
+    )
+    category_id = category_response.json()["id"]
+
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-01-15",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "250.00",
+            "payment_method": "cash",
+        },
+    )
+
+    response = client.get("/api/stats/data?kind=all")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "totals" in data
+    assert "by_period" in data
+    assert "by_category" in data
+    assert "by_payment" in data
+
+    assert data["totals"]["income"] == "250.00"
+    assert data["totals"]["expense"] == "0.00"
+    assert data["totals"]["balance"] == "250.00"
+
+    assert len(data["by_category"]) == 1
+    assert data["by_category"][0]["category"] == "Тест доход"
+    assert data["by_category"][0]["kind"] == "income"
+    assert data["by_category"][0]["amount"] == "250.00"
+
+    assert len(data["by_payment"]) == 1
+    assert data["by_payment"][0]["payment_method"] == "cash"
+    assert data["by_payment"][0]["label"] == "Нал"
+    assert data["by_payment"][0]["amount"] == "250.00"
+
+
+def test_api_stats_filters(client):
+    client.post("/login", data={"password": "admin"})
+    response = client.get("/api/stats/filters")
+    assert response.status_code == 200
+    data = response.json()
+    assert "categories" in data
+    assert "payment_methods" in data
+    assert any(pm["value"] == "cash" and pm["label"] == "Нал" for pm in data["payment_methods"])
+
+
+# tests\test_sync.py
+"""Тесты синхронизации с Google Sheets."""
+from unittest.mock import MagicMock
+
+from app.config import settings
+from app.models import SyncLog
+
+
+def _make_mock_gspread():
+    worksheet = MagicMock()
+    worksheet.title = "Операции"
+    worksheet.clear = MagicMock()
+    worksheet.update = MagicMock()
+    worksheet.format = MagicMock()
+
+    spreadsheet = MagicMock()
+    spreadsheet.worksheet = MagicMock(return_value=worksheet)
+
+    client = MagicMock()
+    client.open_by_key = MagicMock(return_value=spreadsheet)
+
+    gspread_module = MagicMock()
+    gspread_module.service_account = MagicMock(return_value=client)
+    gspread_module.exceptions.WorksheetNotFound = Exception
+    return gspread_module
+
+
+def test_sync_page_requires_auth(client):
+    response = client.get("/sync", follow_redirects=False)
+    assert response.status_code == 302
+
+
+def test_sync_page(client):
+    client.post("/login", data={"password": "admin"})
+    response = client.get("/sync")
+    assert response.status_code == 200
+    assert "Синхронизация" in response.text
+
+
+def test_sync_now_without_spreadsheet_id(client, monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "")
+    client.post("/login", data={"password": "admin"})
+
+    response = client.post("/sync/now")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is False
+    assert "GOOGLE_SPREADSHEET_ID" in data["error"]
+
+
+def test_sync_now_success(client, monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "test_spreadsheet_id")
+    monkeypatch.setattr("app.services.sheets.gspread", _make_mock_gspread())
+
+    client.post("/login", data={"password": "admin"})
+
+    category_response = client.post(
+        "/api/categories", json={"name": "Тест синхронизации", "kind": "income"}
+    )
+    category_id = category_response.json()["id"]
+
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-02-01",
+            "kind": "income",
+            "category_id": category_id,
+            "amount": "500.00",
+            "payment_method": "card",
+        },
+    )
+
+    response = client.post("/sync/now")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["synced"] > 0
+
+    logs_response = client.get("/api/sync/logs")
+    assert logs_response.status_code == 200
+    logs = logs_response.json()
+    assert len(logs) >= 1
+    assert logs[0]["success"] is True
+    assert logs[0]["records_count"] > 0
+
+
+# tests\__init__.py
+
+

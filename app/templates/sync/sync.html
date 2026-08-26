@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Синхронизация{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Синхронизация с Google Таблицей</h1>
+</div>
+
+<div class="form-card">
+    <p>
+        Расписание: <strong>{{ schedule }}</strong><br>
+        Таблица: <strong>{{ "настроена" if spreadsheet_configured else "не настроена" }}</strong>
+    </p>
+    <button class="btn btn-primary" id="btn-sync" {% if not spreadsheet_configured %}disabled{% endif %}>
+        Синхронизировать отчёт P&L
+    </button>
+    <div id="sync-status" class="alert" style="margin-top: 1rem; display: none;"></div>
+</div>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Время</th>
+                <th>Статус</th>
+                <th>Сообщение</th>
+                <th class="numeric">Записей</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.created_at.strftime("%d.%m.%Y %H:%M:%S") }}</td>
+                <td>{{ "Успех" if log.success else "Ошибка" }}</td>
+                <td>{{ log.message }}</td>
+                <td class="numeric">{{ log.records_count or "—" }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="empty">Пока нет попыток синхронизации</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btn-sync");
+  const status = document.getElementById("sync-status");
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    status.style.display = "none";
+    status.className = "alert";
+
+    try {
+      const res = await fetch("/sync/now", { method: "POST" });
+      const data = await res.json();
+
+      if (data.success) {
+        status.classList.add("alert-success");
+        status.textContent = `Синхронизация завершена: ${data.synced} операций`;
+      } else {
+        status.classList.add("alert-error");
+        status.textContent = `Ошибка: ${data.error}`;
+      }
+    } catch (err) {
+      status.classList.add("alert-error");
+      status.textContent = `Ошибка запроса: ${err}`;
+    } finally {
+      status.style.display = "block";
+      btn.disabled = false;
+    }
+  });
+});
+</script>
+{% endblock %}

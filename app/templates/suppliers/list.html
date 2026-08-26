@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Поставщики{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Поставщики</h1>
+</div>
+
+<form method="post" action="/suppliers" class="form-card">
+    <h2>Добавить поставщика</h2>
+    <div class="form-row">
+        <label>Название
+            <input type="text" name="name" required>
+        </label>
+        <label>Контакты
+            <input type="text" name="contact">
+        </label>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </div>
+</form>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Контакты</th>
+                <th>Активен</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for supplier in suppliers %}
+            <tr>
+                <td>{{ supplier.name }}</td>
+                <td>{{ supplier.contact or '' }}</td>
+                <td>{{ 'Да' if supplier.is_active else 'Нет' }}</td>
+                <td class="actions">
+                    <button type="button" class="btn btn-small" onclick="document.getElementById('edit-supplier-{{ supplier.id }}').classList.toggle('hidden')">Изменить</button>
+                    <form method="post" action="/suppliers/{{ supplier.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                        <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="edit-supplier-{{ supplier.id }}" class="edit-row hidden">
+                <td colspan="4">
+                    <form method="post" action="/suppliers/{{ supplier.id }}" class="form-card inline-edit">
+                        <div class="form-row">
+                            <label>Название
+                                <input type="text" name="name" value="{{ supplier.name }}" required>
+                            </label>
+                            <label>Контакты
+                                <input type="text" name="contact" value="{{ supplier.contact or '' }}">
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="is_active" {% if supplier.is_active %}checked{% endif %}> Активен
+                            </label>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

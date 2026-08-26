@@ -1,0 +1,90 @@
+<li class="tree-node" data-id="{{ category.id }}">
+    <div class="category-row">
+        <div class="category-main">
+            <span class="category-dot" aria-hidden="true"></span>
+            <span class="category-name">{{ category.name }}</span>
+        </div>
+
+        <div class="category-meta">
+            <span class="category-badge kind {% if category.kind == 'income' %}income{% else %}expense{% endif %}">
+                {{ 'доход' if category.kind == 'income' else 'расход' }}
+            </span>
+            <span class="category-badge report">{{ report_group_label(category.report_group_ref) }}</span>
+            <span class="category-flags">
+                {% if category.requires_payment_method %}<span class="category-flag" title="Способ оплаты">💳</span>{% endif %}
+                {% if category.requires_guests %}<span class="category-flag" title="Гости">👥</span>{% endif %}
+                {% if category.requires_supplier %}<span class="category-flag" title="Поставщик">🚚</span>{% endif %}
+                {% if category.requires_products %}<span class="category-flag" title="Продукты">🥕</span>{% endif %}
+                {% if category.requires_employee %}<span class="category-flag" title="Сотрудник">👤</span>{% endif %}
+                {% if category.requires_responsible %}<span class="category-flag" title="Ответственный">⚠️</span>{% endif %}
+            </span>
+        </div>
+
+        <div class="category-actions">
+            <button type="button" class="btn btn-small" onclick="document.getElementById('edit-form-{{ category.id }}').classList.toggle('hidden')">Изменить</button>
+            <form method="post" action="/categories/{{ category.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+            </form>
+        </div>
+    </div>
+
+    <form method="post" action="/categories/{{ category.id }}" id="edit-form-{{ category.id }}" class="edit-form hidden">
+        <div class="form-row">
+            <label>Название
+                <input type="text" name="name" value="{{ category.name }}" required>
+            </label>
+            <label>Тип
+                <select name="kind" required>
+                    <option value="income" {% if category.kind == 'income' %}selected{% endif %}>Доход</option>
+                    <option value="expense" {% if category.kind == 'expense' %}selected{% endif %}>Расход</option>
+                </select>
+            </label>
+            <label>Родитель
+                <select name="parent_id">
+                    <option value="">— без родителя —</option>
+                    <optgroup label="Доходы">
+                        {% for c in all_categories %}
+                            {% if c.id != category.id and c.kind == 'income' %}
+                                <option value="{{ c.id }}" {% if category.parent_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="Расходы">
+                        {% for c in all_categories %}
+                            {% if c.id != category.id and c.kind == 'expense' %}
+                                <option value="{{ c.id }}" {% if category.parent_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </label>
+            <label>Группа в отчёте (куда попадёт в Excel/Google Таблице)
+                <select name="report_group_id">
+                    <option value="">— не в отчёте —</option>
+                    {% for group in report_groups %}
+                        <option value="{{ group.id }}" {% if category.report_group_id == group.id %}selected{% endif %}>{{ report_group_option_label(group) }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <fieldset class="flags">
+            <label><input type="checkbox" name="requires_payment_method" {% if category.requires_payment_method %}checked{% endif %}> Способ оплаты</label>
+            <label><input type="checkbox" name="requires_guests" {% if category.requires_guests %}checked{% endif %}> Гости</label>
+            <label><input type="checkbox" name="requires_supplier" {% if category.requires_supplier %}checked{% endif %}> Поставщик</label>
+            <label><input type="checkbox" name="requires_products" {% if category.requires_products %}checked{% endif %}> Продукты</label>
+            <label><input type="checkbox" name="requires_employee" {% if category.requires_employee %}checked{% endif %}> Сотрудник</label>
+            <label><input type="checkbox" name="requires_responsible" {% if category.requires_responsible %}checked{% endif %}> Ответственный</label>
+            <label><input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}> Активна</label>
+        </fieldset>
+        <button type="submit" class="btn btn-primary btn-small">Сохранить</button>
+    </form>
+
+    {% if category.children %}
+        <ul class="tree-children">
+            {% for child in category.children %}
+                {% set category = child %}
+                {% include "categories/tree_node.html" %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

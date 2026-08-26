@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Сотрудники{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Сотрудники</h1>
+</div>
+
+<form method="post" action="/employees" class="form-card">
+    <h2>Добавить сотрудника</h2>
+    <div class="form-row">
+        <label>Имя
+            <input type="text" name="name" required>
+        </label>
+        <label>Роль
+            <input type="text" name="role">
+        </label>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </div>
+</form>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Имя</th>
+                <th>Роль</th>
+                <th>Активен</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee.name }}</td>
+                <td>{{ employee.role or '' }}</td>
+                <td>{{ 'Да' if employee.is_active else 'Нет' }}</td>
+                <td class="actions">
+                    <button type="button" class="btn btn-small" onclick="document.getElementById('edit-employee-{{ employee.id }}').classList.toggle('hidden')">Изменить</button>
+                    <form method="post" action="/employees/{{ employee.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                        <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            <tr id="edit-employee-{{ employee.id }}" class="edit-row hidden">
+                <td colspan="4">
+                    <form method="post" action="/employees/{{ employee.id }}" class="form-card inline-edit">
+                        <div class="form-row">
+                            <label>Имя
+                                <input type="text" name="name" value="{{ employee.name }}" required>
+                            </label>
+                            <label>Роль
+                                <input type="text" name="role" value="{{ employee.role or '' }}">
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="is_active" {% if employee.is_active %}checked{% endif %}> Активен
+                            </label>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

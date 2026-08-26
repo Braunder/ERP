@@ -1,0 +1,17 @@
+# Виртуальное окружение
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Данные приложения
+data/
+logs/
+
+# Переменные окружения и секреты
+.env
+gen-lang-client-*.json

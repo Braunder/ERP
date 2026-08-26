@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Категории{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Категории</h1>
+</div>
+
+<div class="two-columns">
+    <section class="form-card">
+        <h2>Добавить категорию</h2>
+        <form method="post" action="/categories">
+            <label>Название
+                <input type="text" name="name" required>
+            </label>
+            <label>Тип
+                <select name="kind" required>
+                    <option value="income">Доход</option>
+                    <option value="expense">Расход</option>
+                </select>
+            </label>
+            <label>Родитель
+                <select name="parent_id">
+                    <option value="">— без родителя —</option>
+                    <optgroup label="Доходы">
+                        {% for category in all_categories %}
+                            {% if category.kind == 'income' %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="Расходы">
+                        {% for category in all_categories %}
+                            {% if category.kind == 'expense' %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </label>
+            <label>Группа в отчёте (куда попадёт в Excel/Google Таблице)
+                <select name="report_group_id">
+                    <option value="">— не в отчёте —</option>
+                    {% for group in report_groups %}
+                        <option value="{{ group.id }}">{{ report_group_option_label(group) }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <fieldset class="flags">
+                <label><input type="checkbox" name="requires_payment_method"> Способ оплаты</label>
+                <label><input type="checkbox" name="requires_guests"> Гости</label>
+                <label><input type="checkbox" name="requires_supplier"> Поставщик</label>
+                <label><input type="checkbox" name="requires_products"> Продукты</label>
+                <label><input type="checkbox" name="requires_employee"> Сотрудник</label>
+                <label><input type="checkbox" name="requires_responsible"> Ответственный</label>
+            </fieldset>
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+    </section>
+
+    <section>
+        <h2>Категории по группе</h2>
+        <label>Группа отчёта
+            <select id="group-select" onchange="filterCategories(this.value)">
+                <option value="">— выберите группу —</option>
+                {% for group in report_groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <ul id="group-categories" class="category-tree">
+            <li class="empty">Выберите группу, чтобы увидеть категории</li>
+        </ul>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function filterCategories(groupId) {
+    const list = document.getElementById('group-categories');
+    if (!groupId) {
+        list.innerHTML = '<li class="empty">Выберите группу, чтобы увидеть категории</li>';
+        return;
+    }
+    try {
+        const res = await fetch('/api/categories/by-group/' + groupId);
+        const data = await res.json();
+        if (!data || data.length === 0) {
+            list.innerHTML = '<li class="empty">В этой группе нет категорий</li>';
+            return;
+        }
+        let html = '';
+        function renderNode(node) {
+            const kindLabel = node.kind === 'income' ? 'доход' : 'расход';
+            const groupLabel = node.report_group_name ? node.report_group_name : '— не в отчёте —';
+            const flags = [];
+            if (node.requires_payment_method) flags.push('💳');
+            if (node.requires_guests) flags.push('👥');
+            if (node.requires_supplier) flags.push('🚚');
+            if (node.requires_products) flags.push('🥕');
+            if (node.requires_employee) flags.push('👤');
+            if (node.requires_responsible) flags.push('⚠️');
+            html += '<li class="tree-node" data-id="' + node.id + '"><div class="category-row">';
+            html += '<div class="category-main"><span class="category-dot"></span><span class="category-name">' + (node.name || '') + '</span></div>';
+            html += '<div class="category-meta">';
+            html += '<span class="category-badge kind ' + (node.kind || '') + '">' + kindLabel + '</span>';
+            html += '<span class="category-badge report">' + groupLabel + '</span>';
+            html += '<span class="category-flags">' + flags.join(' ') + '</span>';
+            html += '</div>';
+            html += '<div class="category-actions">';
+            html += '<button type="button" class="btn btn-small" onclick="document.getElementById(\'edit-form-\' + ' + node.id + ').classList.toggle(\'hidden\')">Изменить</button>';
+            html += '<form method="post" action="/categories/' + node.id + '/delete" class="inline" onsubmit="return confirmDelete()"><button type="submit" class="btn btn-small btn-danger">Удалить</button></form>';
+            html += '</div></div>';
+            html += '<form method="post" action="/categories/' + node.id + '" id="edit-form-' + node.id + '" class="edit-form hidden">';
+            html += '<div class="form-row"><label>Название <input type="text" name="name" value="' + (node.name || '') + '" required></label></div>';
+            html += '<fieldset class="flags">';
+            html += '<label><input type="checkbox" name="requires_payment_method" ' + (node.requires_payment_method ? 'checked' : '') + '> Способ оплаты</label>';
+            html += '<label><input type="checkbox" name="requires_guests" ' + (node.requires_guests ? 'checked' : '') + '> Гости</label>';
+            html += '<label><input type="checkbox" name="requires_supplier" ' + (node.requires_supplier ? 'checked' : '') + '> Поставщик</label>';
+            html += '<label><input type="checkbox" name="requires_products" ' + (node.requires_products ? 'checked' : '') + '> Продукты</label>';
+            html += '<label><input type="checkbox" name="requires_employee" ' + (node.requires_employee ? 'checked' : '') + '> Сотрудник</label>';
+            html += '<label><input type="checkbox" name="requires_responsible" ' + (node.requires_responsible ? 'checked' : '') + '> Ответственный</label>';
+            html += '<label><input type="checkbox" name="is_active" ' + (node.is_active ? 'checked' : '') + '> Активна</label>';
+            html += '</fieldset>';
+            html += '<button type="submit" class="btn btn-primary btn-small">Сохранить</button></form>';
+            if (node.children && node.children.length > 0) {
+                html += '<ul class="tree-children">';
+                for (const child of node.children) {
+                    renderNode(child);
+                }
+                html += '</ul>';
+            }
+            html += '</li>';
+        }
+        for (const node of data) {
+            renderNode(node);
+        }
+        list.innerHTML = html;
+    } catch (e) {
+        list.innerHTML = '<li class="empty">Ошибка загрузки</li>';
+    }
+}
+</script>
+{% endblock %}

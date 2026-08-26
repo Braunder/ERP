@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Группы отчёта{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Группы отчёта</h1>
+</div>
+
+<div class="alert alert-info">
+    Группы определяют, как категории попадают в выгрузку в Excel/Google Таблицу.
+    Порядок в таблице задаётся полем «Порядок» (меньше — выше).
+</div>
+
+<div class="two-columns">
+    <section class="form-card">
+        <h2>Добавить группу</h2>
+        <form method="post" action="/report-groups">
+            <label>Название
+                <input type="text" name="name" required placeholder="например, Прямой расход">
+            </label>
+            <label>Секция отчёта
+                <select name="section">
+                    {% for key, label in section_labels.items() %}
+                        <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Порядок в отчёте
+                <input type="number" name="sort_order" value="100">
+            </label>
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+    </section>
+
+    <section class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Секция</th>
+                    <th class="numeric">Порядок</th>
+                    <th class="numeric">Категорий</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in groups %}
+                <tr>
+                    <td>{{ group.name }}{% if not group.is_active %} <span class="muted">(отключена)</span>{% endif %}</td>
+                    <td>{{ section_labels.get(group.section, group.section) }}</td>
+                    <td class="numeric">{{ group.sort_order }}</td>
+                    <td class="numeric">{{ category_counts.get(group.id, 0) }}</td>
+                    <td class="actions">
+                        <button type="button" class="btn btn-small" onclick="document.getElementById('edit-group-{{ group.id }}').classList.toggle('hidden')">Изменить</button>
+                        <form method="post" action="/report-groups/{{ group.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                            <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr id="edit-group-{{ group.id }}" class="edit-row hidden">
+                    <td colspan="5">
+                        <form method="post" action="/report-groups/{{ group.id }}" class="form-card inline-edit">
+                            <div class="form-row">
+                                <label>Название
+                                    <input type="text" name="name" value="{{ group.name }}" required>
+                                </label>
+                                <label>Секция отчёта
+                                    <select name="section">
+                                        {% for key, label in section_labels.items() %}
+                                            <option value="{{ key }}" {% if group.section == key %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                <label>Порядок
+                                    <input type="number" name="sort_order" value="{{ group.sort_order }}">
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="is_active" {% if group.is_active %}checked{% endif %}> Активна
+                                </label>
+                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty">Групп пока нет — они создадутся автоматически при запуске</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

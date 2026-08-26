@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}{{ operation and 'Редактирование операции' or 'Новая операция' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ operation and 'Редактирование операции' or 'Новая операция' }}</h1>
+</div>
+
+<form method="post" action="{{ operation and '/operations/' ~ operation.id or '/operations' }}" class="form-card" id="operation-form">
+    <label>Дата
+        <input type="date" name="date" value="{{ operation.date if operation else today }}" required>
+    </label>
+
+    <label>Тип
+        <select name="kind" id="kind-select" required>
+            <option value="income" {% if not operation or operation.kind == 'income' %}selected{% endif %}>Доход</option>
+            <option value="expense" {% if operation and operation.kind == 'expense' %}selected{% endif %}>Расход</option>
+        </select>
+    </label>
+
+    <label>Категория
+        <select name="category_id" id="category-select" required>
+            <option value="">—</option>
+        </select>
+    </label>
+
+    <label id="subcategory-label" style="display:none">Подкатегория
+        <select name="category_id" id="subcategory-select" disabled>
+            <option value="">—</option>
+        </select>
+    </label>
+
+    <label>Сумма
+        <input type="number" step="0.01" name="amount" id="amount-input" value="{{ operation.amount if operation else '' }}">
+    </label>
+
+    <label>Комментарий
+        <textarea name="comment" rows="2">{{ operation.comment or '' }}</textarea>
+    </label>
+
+    <div id="guests-block" class="conditional-block" style="display:none">
+        <label>Количество гостей
+            <input type="number" name="guests_count" min="1" value="{{ operation.guests_count or '' }}">
+        </label>
+    </div>
+
+    <div id="payment-block" class="conditional-block" style="display:none">
+        <label>Способ оплаты
+            <select name="payment_method">
+                <option value="">—</option>
+                {% for key, label in payment_labels.items() %}
+                    <option value="{{ key }}" {% if operation and operation.payment_method == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <div id="supplier-block" class="conditional-block" style="display:none">
+        <label>Поставщик
+            <select name="supplier_id" id="supplier-select">
+                <option value="">—</option>
+                {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}" {% if operation and operation.supplier_id == supplier.id %}selected{% endif %}>{{ supplier.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <div id="employee-block" class="conditional-block" style="display:none">
+        <label>Сотрудник
+            <select name="employee_id">
+                <option value="">—</option>
+                {% for employee in employees %}
+                    <option value="{{ employee.id }}" {% if operation and operation.employee_id == employee.id %}selected{% endif %}>{{ employee.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <div id="responsible-block" class="conditional-block" style="display:none">
+        <label>Ответственный
+            <select name="responsible">
+                <option value="">—</option>
+                {% for employee in employees %}
+                    <option value="{{ employee.name }}" {% if operation and operation.responsible == employee.name %}selected{% endif %}>{{ employee.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+
+    <div id="products-block" class="conditional-block" style="display:none">
+        <div class="products-header">
+            <h3>Продукты</h3>
+            <button type="button" class="btn btn-small" id="add-product-row">+ Добавить</button>
+        </div>
+        <div class="table-wrapper">
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>Продукт</th>
+                        <th>Свой вариант</th>
+                        <th>Цена</th>
+                        <th>Количество</th>
+                        <th>Ед.</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="products-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <a href="/operations" class="btn btn-secondary">Отмена</a>
+    </div>
+</form>
+
+<template id="product-row-template">
+    <tr class="product-row">
+        <td>
+            <select class="product-select" name="items[__IDX__][product_id]">
+                <option value="">— выберите продукт —</option>
+                <option value="custom">Свой вариант</option>
+            </select>
+        </td>
+        <td>
+            <input type="text" class="custom-name" name="items[__IDX__][name]" placeholder="Наименование" disabled>
+        </td>
+        <td>
+            <input type="number" step="0.01" class="price-input" name="items[__IDX__][price]" placeholder="0.00">
+        </td>
+        <td>
+            <input type="number" step="0.001" class="quantity-input" name="items[__IDX__][quantity]" value="1">
+        </td>
+        <td>
+            <input type="text" class="unit-input" name="items[__IDX__][unit]" value="шт" size="4">
+        </td>
+        <td>
+            <button type="button" class="btn btn-small btn-danger remove-row">×</button>
+        </td>
+    </tr>
+</template>
+
+<script>
+window.ERP_FORM = {
+    operation: {{ operation|tojson if operation else 'null' }},
+    suppliers: {{ suppliers|map(attribute='id')|list|tojson }},
+    employees: {{ employees|map(attribute='name')|list|tojson }},
+};
+</script>
+<script src="/static/js/forms.js"></script>
+{% endblock %}
