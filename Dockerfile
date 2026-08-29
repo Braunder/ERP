@@ -20,10 +20,10 @@ COPY . .
 RUN mkdir -p data logs backups
 
 # Установка прав
-RUN chmod +x run.py
+RUN chmod +x run.py init_db.py
 
 # Экспорт переменных окружения
 ENV PYTHONUNBUFFERED=1
 
 # Запуск приложения
-CMD ["python", "run.py"]
+CMD ["python", "init_db.py"] && python run.py
