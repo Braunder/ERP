@@ -1,3 +1,4 @@
+# app\routers\categories.py
 """Категории доходов/расходов: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import Category, ChangeLog, ReportGroup
+from app.models import Category, ChangeLog, Operation, ReportGroup
 from app.schemas import CategoryCreate, CategoryRead
 from app.services.report import report_group_label, report_group_option_label
 
@@ -192,6 +193,32 @@ async def category_delete(category_id: int, db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Категория не найдена")
+
+    # Защита от «висячих» ссылок: без проверки FK (SQLite их не проверяет)
+    # удаление категории, на которую ссылаются операции или дочерние
+    # категории, приводило бы к операциям с несуществующей категорией
+    # и падению страницы /operations с 500 ошибкой.
+    children_count = db.query(Category).filter(Category.parent_id == category_id).count()
+    if children_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить категорию «{category.name}»: у неё есть "
+                f"{children_count} дочерних категорий. Сначала удалите или "
+                "перенесите их."
+            ),
+        )
+
+    operations_count = db.query(Operation).filter(Operation.category_id == category_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить категорию «{category.name}»: к ней привязано "
+                f"{operations_count} операций. Сначала удалите или перенесите их."
+            ),
+        )
+
     db.delete(category)
     _log_change(db, "category", category.id, "delete")
     db.commit()

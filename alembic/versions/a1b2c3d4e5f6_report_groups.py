@@ -65,7 +65,13 @@ def upgrade() -> None:
         sa.text("SELECT DISTINCT report_group FROM categories WHERE report_group IS NOT NULL")
     ).fetchall()
 
+    # name(новой группы) -> id только что вставленной строки report_groups
     group_ids: dict[str, int] = {}
+    # old_key (исходное значение categories.report_group) -> id новой группы.
+    # Отдельный маппинг нужен, чтобы не терять соответствие "старый ключ -> id"
+    # при переносе нескольких старых ключей в одну и ту же новую группу.
+    old_key_to_group_id: dict[str, int] = {}
+
     for (old_key,) in rows:
         name, section, sort_order = _GROUP_DEFS.get(old_key, (old_key, "other", 100))
         if name not in group_ids:
@@ -77,17 +83,18 @@ def upgrade() -> None:
                 {"name": name, "section": section, "sort_order": sort_order},
             )
             group_ids[name] = result.lastrowid
+        old_key_to_group_id[old_key] = group_ids[name]
 
     op.add_column(
         'categories',
         sa.Column('report_group_id', sa.Integer(), nullable=True),
     )
-    for old_key, name in group_ids.items():
+    for old_key, gid in old_key_to_group_id.items():
         conn.execute(
             sa.text(
                 "UPDATE categories SET report_group_id = :gid WHERE report_group = :key"
             ),
-            {"gid": group_ids[name], "key": old_key},
+            {"gid": gid, "key": old_key},
         )
 
     op.create_foreign_key(

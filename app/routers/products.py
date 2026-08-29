@@ -1,11 +1,12 @@
+# app\routers\products.py
 """Продукты: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Product, ProductPrice
+from app.models import ChangeLog, OperationItem, Product, ProductPrice
 from app.schemas import ProductCreate, ProductPriceRead, ProductRead, ProductWithPricesRead
 
 router = APIRouter(tags=["products"], dependencies=[Depends(require_auth)])
@@ -91,6 +92,15 @@ async def product_delete(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
+
+    # OperationItem.product_id допускает NULL (снимок наименования хранится
+    # отдельно в OperationItem.name), поэтому при удалении продукта явно
+    # отвязываем от него уже существующие строки операций, вместо того чтобы
+    # оставлять «висячую» ссылку на удалённую запись.
+    db.query(OperationItem).filter(OperationItem.product_id == product_id).update(
+        {OperationItem.product_id: None}
+    )
+
     db.delete(product)
     _log_change(db, "product", product.id, "delete")
     db.commit()

@@ -1,3 +1,4 @@
+# app\routers\suppliers.py
 """Поставщики: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Supplier
+from app.models import ChangeLog, Operation, Supplier
 from app.schemas import SupplierCreate, SupplierRead
 
 router = APIRouter(tags=["suppliers"], dependencies=[Depends(require_auth)])
@@ -91,6 +92,20 @@ async def supplier_delete(supplier_id: int, db: Session = Depends(get_db)):
     supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
     if not supplier:
         raise HTTPException(status_code=404, detail="Поставщик не найден")
+
+    # Без этой проверки удаление поставщика, использованного в операциях,
+    # оставило бы Operation.supplier_id указывающим на несуществующую строку
+    # (SQLite не проверяет внешние ключи по умолчанию).
+    operations_count = db.query(Operation).filter(Operation.supplier_id == supplier_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить поставщика «{supplier.name}»: к нему привязано "
+                f"{operations_count} операций."
+            ),
+        )
+
     db.delete(supplier)
     _log_change(db, "supplier", supplier.id, "delete")
     db.commit()

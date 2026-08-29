@@ -1,3 +1,4 @@
+# app\routers\employees.py
 """Сотрудники: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -5,7 +6,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Employee
+from app.models import ChangeLog, Employee, Operation
 from app.schemas import EmployeeCreate, EmployeeRead
 
 router = APIRouter(tags=["employees"], dependencies=[Depends(require_auth)])
@@ -91,6 +92,20 @@ async def employee_delete(employee_id: int, db: Session = Depends(get_db)):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    # Без этой проверки удаление сотрудника, использованного в операциях,
+    # оставило бы Operation.employee_id указывающим на несуществующую строку
+    # (SQLite не проверяет внешние ключи по умолчанию).
+    operations_count = db.query(Operation).filter(Operation.employee_id == employee_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить сотрудника «{employee.name}»: к нему привязано "
+                f"{operations_count} операций."
+            ),
+        )
+
     db.delete(employee)
     _log_change(db, "employee", employee.id, "delete")
     db.commit()

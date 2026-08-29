@@ -22,8 +22,17 @@ def run_migrations():
 def create_tables():
     """Создает таблицы (если миграции не выполнены)."""
     print("Создание таблиц базы данных...")
-    Base.metadata.create_all(bind=engine)
-    print("✓ Таблицы созданы")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✓ Таблицы созданы")
+    except Exception as e:
+        print(f"⚠ Ошибка при создании таблиц: {e}")
+        print("Попробуем создать таблицы через Alembic...")
+        try:
+            run_migrations()
+        except Exception as e2:
+            print(f"⚠ Ошибка при выполнении миграций: {e2}")
+            raise
 
 
 def seed_data():
@@ -44,13 +53,8 @@ def main():
     print("Инициализация базы данных")
     print("=" * 60)
 
-    # Проверяем, есть ли миграции
-    try:
-        run_migrations()
-    except Exception as e:
-        print(f"⚠ Миграции не найдены или не выполнены: {e}")
-        print("Попробуем создать таблицы...")
-        create_tables()
+    # Создаем таблицы
+    create_tables()
 
     # Заполняем справочники
     seed_data()

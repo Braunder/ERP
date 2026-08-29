@@ -1,3 +1,4 @@
+# app\services\report.py
 """Генерация отчёта P&L по месяцам для Google Sheets."""
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -386,14 +387,6 @@ def build_report(db: Session) -> ReportData:
         )
         rows.extend(other_section_rows)
         rows.append(_blank_separator("other", n))
-
-    # Прибыль
-    profit_amounts = [
-        revenue[i] - direct_totals[i] - overhead_totals[i] - (
-            sum(section_totals.get(s, [Decimal("0") for _ in range(n)])[i] for s in rows_by_section if s not in {"revenue", "direct", "overhead"})
-        )
-        for i in range(n)
-    ]
 
     # Прибыль уже считается по всем расходам, включая налоги и прочее.
     # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.

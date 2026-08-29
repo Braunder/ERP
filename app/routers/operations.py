@@ -1,3 +1,4 @@
+# app\routers\operations.py
 """Операции доходов/расходов: HTML-CRUD и JSON API."""
 import re
 from collections import defaultdict
@@ -208,12 +209,18 @@ async def operation_edit(
 ):
     operation = (
         db.query(Operation)
-        .options(joinedload(Operation.items).joinedload(OperationItem.product))
+        .options(
+            joinedload(Operation.category),
+            joinedload(Operation.employee),
+            joinedload(Operation.supplier),
+            joinedload(Operation.items).joinedload(OperationItem.product),
+        )
         .filter(Operation.id == operation_id)
         .first()
     )
     if not operation:
         raise HTTPException(status_code=404, detail="Операция не найдена")
+
     categories = (
         db.query(Category)
         .filter(Category.is_active == True)
@@ -232,6 +239,18 @@ async def operation_edit(
         .order_by(Supplier.name)
         .all()
     )
+
+    # Категория/сотрудник/поставщик, реально привязанные к операции, могут
+    # быть деактивированы позже. Если не подмешать их сюда, они пропадают из
+    # выпадающего списка формы редактирования, и при сохранении операция
+    # молча теряет исходное значение (или форма падает с ошибкой валидации).
+    if operation.category and not operation.category.is_active:
+        categories = [*categories, operation.category]
+    if operation.employee and not operation.employee.is_active:
+        employees = [*employees, operation.employee]
+    if operation.supplier and not operation.supplier.is_active:
+        suppliers = [*suppliers, operation.supplier]
+
     return templates.TemplateResponse(
         request,
         "operations/form.html",
