@@ -51,9 +51,20 @@
             const option = document.createElement("option");
             option.value = cat.id;
             option.textContent = cat.name;
+            option.dataset.hasChildren = false;
             categorySelect.appendChild(option);
         });
         categorySelect.value = currentValue;
+    }
+
+    async function loadProducts() {
+        const res = await fetch("/api/products?active=true");
+        products = await res.json();
+        document.querySelectorAll(".product-select").forEach((select) => {
+            const current = select.value;
+            fillProductSelect(select);
+            select.value = current;
+        });
     }
 
     async function loadProductPrices() {
