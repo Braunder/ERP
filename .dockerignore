@@ -29,6 +29,9 @@ logs/
 *.db
 *.sqlite
 
+# Google сервисный аккаунт (скопируем явно в Dockerfile)
+gen-lang-client-*.json
+
 # Alembic
 alembic/versions/*.pyc
 

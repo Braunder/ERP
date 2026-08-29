@@ -16,6 +16,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копирование остального кода
 COPY . .
 
+# Копирование Google сервисного аккаунта (если есть)
+RUN if [ -f "gen-lang-client-*.json" ]; then \
+        for file in gen-lang-client-*.json; do \
+            cp "$file" .; \
+        done; \
+    fi
+
 # Создание директорий для данных
 RUN mkdir -p data logs backups
 
