@@ -288,7 +288,78 @@ RUN chmod +x run.py
 ENV PYTHONUNBUFFERED=1
 
 # Запуск приложения
-CMD ["python", "run.py"]
+CMD ["sh", "-c", "python init_db.py || true && python run.py"]
+
+
+# init_db.py
+"""Инициализация базы данных: создание таблиц и заполнение справочников."""
+import sys
+from pathlib import Path
+
+# Добавляем app в путь
+sys.path.insert(0, str(Path(__file__).parent))
+
+from app.database import engine, Base
+from app.seed import seed_db
+from alembic.config import Config
+from alembic import command
+
+
+def run_migrations():
+    """Выполняет миграции базы данных."""
+    print("Выполнение миграций Alembic...")
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+    print("✓ Миграции выполнены успешно")
+
+
+def create_tables():
+    """Создает таблицы (если миграции не выполнены)."""
+    print("Создание таблиц базы данных...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✓ Таблицы созданы")
+    except Exception as e:
+        print(f"⚠ Ошибка при создании таблиц: {e}")
+        print("Попробуем создать таблицы через Alembic...")
+        try:
+            run_migrations()
+        except Exception as e2:
+            print(f"⚠ Ошибка при выполнении миграций: {e2}")
+            raise
+
+
+def seed_data():
+    """Заполняет справочники начальными данными."""
+    from app.database import SessionLocal
+    print("Заполнение справочников...")
+    db = SessionLocal()
+    try:
+        seed_db(db)
+        print("✓ Справочники заполнены")
+    finally:
+        db.close()
+
+
+def main():
+    """Главная функция инициализации."""
+    print("=" * 60)
+    print("Инициализация базы данных")
+    print("=" * 60)
+
+    # Создаем таблицы
+    create_tables()
+
+    # Заполняем справочники
+    seed_data()
+
+    print("=" * 60)
+    print("База данных инициализирована!")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()
 
 
 # README.md
@@ -507,6 +578,138 @@ sudo systemctl reload nginx
 ```bash
 .venv/Scripts/python -m pytest -q
 ```
+
+
+# README_RAILWAY.md
+# Деплой на Railway
+
+## Инструкция по деплою
+
+### 1. Подготовка проекта
+
+1. Создайте файл `.env` в корне проекта (уже создан)
+2. Убедитесь, что в `.env` установлены правильные значения:
+   - `DATABASE_URL` - путь к базе данных
+   - `SECRET_KEY` - секретный ключ (сгенерируйте свой)
+   - `ADMIN_PASSWORD` - пароль админ-панели
+
+### 2. Деплой на Railway
+
+1. Зарегистрируйтесь на [Railway.app](https://railway.app)
+2. Создайте новый проект или выберите существующий
+3. Нажмите "New Service" → "Deploy from GitHub repo"
+4. Выберите этот репозиторий
+5. Railway автоматически определит конфигурацию из `railway.json`
+6. Нажмите "Deploy"
+
+### 3. Создание базы данных PostgreSQL
+
+1. В Railway dashboard нажмите на сервис вашего приложения
+2. Перейдите в раздел "Variables"
+3. Нажмите "Add Variable"
+4. Создайте переменную `DATABASE_URL` со значением:
+   - Railway автоматически создаст PostgreSQL базу данных
+   - Формат: `postgresql://user:password@host:port/database`
+   - Railway покажет значение после создания БД
+
+**Важно:** Railway создаст базу данных автоматически при первом использовании переменной `DATABASE_URL`.
+
+### 4. Настройка переменных окружения
+
+После создания БД Railway предложит настроить переменные окружения:
+
+**Обязательные переменные:**
+- `DATABASE_URL` - подключение к PostgreSQL (создается Railway)
+- `SECRET_KEY` - секретный ключ для подписи сессий
+  - Сгенерируйте уникальный ключ: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+
+- `ADMIN_PASSWORD` - пароль для админ-панели
+
+**Опциональные переменные:**
+- `GOOGLE_SA_FILE` - путь к файлу сервисного аккаунта Google Sheets
+- `GOOGLE_SPREADSHEET_ID` - ID Google таблицы
+- `SYNC_ENABLED` - включить синхронизацию (true/false)
+- `SYNC_SCHEDULE` - расписание синхронизации (cron)
+
+### 4. Настройка PostgreSQL
+
+1. В Railway dashboard нажмите на сервис вашего приложения
+2. Перейдите в раздел "Variables"
+3. Нажмите "Add Variable"
+4. Добавьте переменную `DATABASE_URL` со значением, которое Railway предоставит для PostgreSQL
+
+### 5. Инициализация базы данных
+
+Приложение автоматически инициализирует базу данных при первом запуске:
+- Создает все таблицы
+- Выполняет миграции Alembic
+- Заполняет справочники начальными данными
+
+Если нужно выполнить инициализацию вручную:
+
+```bash
+# В Railway Terminal (если доступен)
+python init_db.py
+
+# Или через SSH
+ssh user@your-railway-app.com
+cd /app
+python init_db.py
+```
+
+### 6. Доступ к приложению
+
+После успешного деплоя Railway предоставит URL приложения (например, `https://your-app.railway.app`)
+
+Админ-панель доступна по адресу:
+- `https://your-app.railway.app/login`
+
+### 7. Первая настройка
+
+1. Зайдите в админ-панель
+2. Установите пароль администратора (если не задан в переменной `ADMIN_PASSWORD`)
+3. Заполните справочники (категории, поставщики, продукты, сотрудники)
+4. Начните использовать систему
+
+### 7. Настройка домена (опционально)
+
+1. В Railway dashboard нажмите на сервис
+2. Перейдите в раздел "Networking"
+3. Добавьте свой домен
+
+## Переменные окружения для Railway
+
+### Обязательные
+
+| Переменная | Описание | Значение |
+|------------|---------|----------|
+| `DATABASE_URL` | Подключение к PostgreSQL | Автоматически создается Railway |
+| `SECRET_KEY` | Секретный ключ | Сгенерируйте уникальный |
+| `ADMIN_PASSWORD` | Пароль админа | Установите свой |
+
+### Опциональные
+
+| Переменная | Описание | Значение |
+|------------|---------|----------|
+| `GOOGLE_SA_FILE` | Файл сервисного аккаунта Google | Загрузите файл |
+| `GOOGLE_SPREADSHEET_ID` | ID Google таблицы | Получите из таблицы |
+| `SYNC_ENABLED` | Включить синхронизацию | `true` или `false` |
+| `SYNC_SCHEDULE` | Расписание синхронизации | Cron выражение |
+
+## Мониторинг и логи
+
+- Логи приложения доступны в Railway dashboard
+- Health-check эндпоинт: `https://your-app.railway.app/health`
+
+## Резервное копирование
+
+Railway автоматически создает бэкапы PostgreSQL. Вы также можете использовать встроенное резервное копирование приложения.
+
+## Обновление приложения
+
+1. Сделайте коммит изменений в GitHub
+2. Railway автоматически перезапустит сервис
+3. При необходимости выполните миграции: `alembic upgrade head`
 
 
 # run.py
@@ -1005,7 +1208,13 @@ def upgrade() -> None:
         sa.text("SELECT DISTINCT report_group FROM categories WHERE report_group IS NOT NULL")
     ).fetchall()
 
+    # name(новой группы) -> id только что вставленной строки report_groups
     group_ids: dict[str, int] = {}
+    # old_key (исходное значение categories.report_group) -> id новой группы.
+    # Отдельный маппинг нужен, чтобы не терять соответствие "старый ключ -> id"
+    # при переносе нескольких старых ключей в одну и ту же новую группу.
+    old_key_to_group_id: dict[str, int] = {}
+
     for (old_key,) in rows:
         name, section, sort_order = _GROUP_DEFS.get(old_key, (old_key, "other", 100))
         if name not in group_ids:
@@ -1017,17 +1226,18 @@ def upgrade() -> None:
                 {"name": name, "section": section, "sort_order": sort_order},
             )
             group_ids[name] = result.lastrowid
+        old_key_to_group_id[old_key] = group_ids[name]
 
     op.add_column(
         'categories',
         sa.Column('report_group_id', sa.Integer(), nullable=True),
     )
-    for old_key, name in group_ids.items():
+    for old_key, gid in old_key_to_group_id.items():
         conn.execute(
             sa.text(
                 "UPDATE categories SET report_group_id = :gid WHERE report_group = :key"
             ),
-            {"gid": group_ids[name], "key": old_key},
+            {"gid": gid, "key": old_key},
         )
 
     op.create_foreign_key(
@@ -2192,6 +2402,7 @@ async def api_backups_list():
 
 
 # app\routers\categories.py
+# app\routers\categories.py
 """Категории доходов/расходов: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -2199,7 +2410,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import Category, ChangeLog, ReportGroup
+from app.models import Category, ChangeLog, Operation, ReportGroup
 from app.schemas import CategoryCreate, CategoryRead
 from app.services.report import report_group_label, report_group_option_label
 
@@ -2386,6 +2597,32 @@ async def category_delete(category_id: int, db: Session = Depends(get_db)):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="Категория не найдена")
+
+    # Защита от «висячих» ссылок: без проверки FK (SQLite их не проверяет)
+    # удаление категории, на которую ссылаются операции или дочерние
+    # категории, приводило бы к операциям с несуществующей категорией
+    # и падению страницы /operations с 500 ошибкой.
+    children_count = db.query(Category).filter(Category.parent_id == category_id).count()
+    if children_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить категорию «{category.name}»: у неё есть "
+                f"{children_count} дочерних категорий. Сначала удалите или "
+                "перенесите их."
+            ),
+        )
+
+    operations_count = db.query(Operation).filter(Operation.category_id == category_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить категорию «{category.name}»: к ней привязано "
+                f"{operations_count} операций. Сначала удалите или перенесите их."
+            ),
+        )
+
     db.delete(category)
     _log_change(db, "category", category.id, "delete")
     db.commit()
@@ -2430,6 +2667,7 @@ async def api_categories_by_group(group_id: int, db: Session = Depends(get_db)):
 
 
 # app\routers\employees.py
+# app\routers\employees.py
 """Сотрудники: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -2437,7 +2675,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Employee
+from app.models import ChangeLog, Employee, Operation
 from app.schemas import EmployeeCreate, EmployeeRead
 
 router = APIRouter(tags=["employees"], dependencies=[Depends(require_auth)])
@@ -2523,6 +2761,20 @@ async def employee_delete(employee_id: int, db: Session = Depends(get_db)):
     employee = db.query(Employee).filter(Employee.id == employee_id).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Сотрудник не найден")
+
+    # Без этой проверки удаление сотрудника, использованного в операциях,
+    # оставило бы Operation.employee_id указывающим на несуществующую строку
+    # (SQLite не проверяет внешние ключи по умолчанию).
+    operations_count = db.query(Operation).filter(Operation.employee_id == employee_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить сотрудника «{employee.name}»: к нему привязано "
+                f"{operations_count} операций."
+            ),
+        )
+
     db.delete(employee)
     _log_change(db, "employee", employee.id, "delete")
     db.commit()
@@ -2630,6 +2882,7 @@ async def investment_delete(investment_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/investments", status_code=302)
 
 
+# app\routers\operations.py
 # app\routers\operations.py
 """Операции доходов/расходов: HTML-CRUD и JSON API."""
 import re
@@ -2841,12 +3094,18 @@ async def operation_edit(
 ):
     operation = (
         db.query(Operation)
-        .options(joinedload(Operation.items).joinedload(OperationItem.product))
+        .options(
+            joinedload(Operation.category),
+            joinedload(Operation.employee),
+            joinedload(Operation.supplier),
+            joinedload(Operation.items).joinedload(OperationItem.product),
+        )
         .filter(Operation.id == operation_id)
         .first()
     )
     if not operation:
         raise HTTPException(status_code=404, detail="Операция не найдена")
+
     categories = (
         db.query(Category)
         .filter(Category.is_active == True)
@@ -2865,6 +3124,18 @@ async def operation_edit(
         .order_by(Supplier.name)
         .all()
     )
+
+    # Категория/сотрудник/поставщик, реально привязанные к операции, могут
+    # быть деактивированы позже. Если не подмешать их сюда, они пропадают из
+    # выпадающего списка формы редактирования, и при сохранении операция
+    # молча теряет исходное значение (или форма падает с ошибкой валидации).
+    if operation.category and not operation.category.is_active:
+        categories = [*categories, operation.category]
+    if operation.employee and not operation.employee.is_active:
+        employees = [*employees, operation.employee]
+    if operation.supplier and not operation.supplier.is_active:
+        suppliers = [*suppliers, operation.supplier]
+
     return templates.TemplateResponse(
         request,
         "operations/form.html",
@@ -3122,14 +3393,15 @@ async def api_operations_create(data: OperationCreate, db: Session = Depends(get
 
 
 # app\routers\products.py
+# app\routers\products.py
 """Продукты: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi.responses import RedirectResponse
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Product, ProductPrice
+from app.models import ChangeLog, OperationItem, Product, ProductPrice
 from app.schemas import ProductCreate, ProductPriceRead, ProductRead, ProductWithPricesRead
 
 router = APIRouter(tags=["products"], dependencies=[Depends(require_auth)])
@@ -3215,6 +3487,15 @@ async def product_delete(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Продукт не найден")
+
+    # OperationItem.product_id допускает NULL (снимок наименования хранится
+    # отдельно в OperationItem.name), поэтому при удалении продукта явно
+    # отвязываем от него уже существующие строки операций, вместо того чтобы
+    # оставлять «висячую» ссылку на удалённую запись.
+    db.query(OperationItem).filter(OperationItem.product_id == product_id).update(
+        {OperationItem.product_id: None}
+    )
+
     db.delete(product)
     _log_change(db, "product", product.id, "delete")
     db.commit()
@@ -3757,6 +4038,7 @@ async def api_stats_filters(db: Session = Depends(get_db)):
 
 
 # app\routers\suppliers.py
+# app\routers\suppliers.py
 """Поставщики: HTML-CRUD и JSON API."""
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -3764,7 +4046,7 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import ChangeLog, Supplier
+from app.models import ChangeLog, Operation, Supplier
 from app.schemas import SupplierCreate, SupplierRead
 
 router = APIRouter(tags=["suppliers"], dependencies=[Depends(require_auth)])
@@ -3850,6 +4132,20 @@ async def supplier_delete(supplier_id: int, db: Session = Depends(get_db)):
     supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
     if not supplier:
         raise HTTPException(status_code=404, detail="Поставщик не найден")
+
+    # Без этой проверки удаление поставщика, использованного в операциях,
+    # оставило бы Operation.supplier_id указывающим на несуществующую строку
+    # (SQLite не проверяет внешние ключи по умолчанию).
+    operations_count = db.query(Operation).filter(Operation.supplier_id == supplier_id).count()
+    if operations_count:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Нельзя удалить поставщика «{supplier.name}»: к нему привязано "
+                f"{operations_count} операций."
+            ),
+        )
+
     db.delete(supplier)
     _log_change(db, "supplier", supplier.id, "delete")
     db.commit()
@@ -4140,6 +4436,7 @@ def restore_database(backup_path: Path) -> Path:
     return db_path
 
 
+# app\services\report.py
 # app\services\report.py
 """Генерация отчёта P&L по месяцам для Google Sheets."""
 from collections import defaultdict
@@ -4529,14 +4826,6 @@ def build_report(db: Session) -> ReportData:
         )
         rows.extend(other_section_rows)
         rows.append(_blank_separator("other", n))
-
-    # Прибыль
-    profit_amounts = [
-        revenue[i] - direct_totals[i] - overhead_totals[i] - (
-            sum(section_totals.get(s, [Decimal("0") for _ in range(n)])[i] for s in rows_by_section if s not in {"revenue", "direct", "overhead"})
-        )
-        for i in range(n)
-    ]
 
     # Прибыль уже считается по всем расходам, включая налоги и прочее.
     # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.
@@ -5931,9 +6220,20 @@ document.addEventListener("DOMContentLoaded", () => {
             const option = document.createElement("option");
             option.value = cat.id;
             option.textContent = cat.name;
+            option.dataset.hasChildren = false;
             categorySelect.appendChild(option);
         });
         categorySelect.value = currentValue;
+    }
+
+    async function loadProducts() {
+        const res = await fetch("/api/products?active=true");
+        products = await res.json();
+        document.querySelectorAll(".product-select").forEach((select) => {
+            const current = select.value;
+            fillProductSelect(select);
+            select.value = current;
+        });
     }
 
     async function loadProductPrices() {

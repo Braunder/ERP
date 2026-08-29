@@ -4,7 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "python run.py",
+    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port 8111 --reload",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
