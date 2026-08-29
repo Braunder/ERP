@@ -80,7 +80,8 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
             logger.warning("Не удалось объединить ячейки заголовка: %s", exc)
 
     # 2. Форматирование заголовков (первая и вторая строки)
-    header_range = f"A1:{_col_letter(1 + num_months * 2)}2"
+    last_col = 1 + num_months * 2
+    header_range = f"A1:{_col_letter(last_col)}2"
     try:
         worksheet.format(
             header_range,
@@ -133,7 +134,9 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
         current = _collect_rows(row, current)
 
     for row_idx, row in flat_rows:
-        range_a = f"A{row_idx}"
+        # Форматируем всю строку до конца месяцев (колонка B + пары сумма/%)
+        row_end_col = _col_letter(last_col)
+        range_full = f"A{row_idx}:{row_end_col}{row_idx}"
         try:
             fmt: dict = {"textFormat": {"bold": row.bold}}
             if row.background == "yellow":
@@ -143,22 +146,16 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
             elif row.background == "green":
                 fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
 
-            worksheet.format(range_a, fmt)
+            worksheet.format(range_full, fmt)
 
-            if row.bold:
-                row_end_col = _col_letter(1 + num_months * 2)
-                worksheet.format(
-                    f"A{row_idx}:{row_end_col}{row_idx}",
-                    {"textFormat": {"bold": True}},
-                )
-            elif row.section in {"direct", "overhead"} and row.level >= 2:
-                worksheet.format(range_a, {"textFormat": {"italic": True}})
+            if row.section in {"direct", "overhead"} and row.level >= 2:
+                worksheet.format(f"A{row_idx}:{row_end_col}{row_idx}", {"textFormat": {"italic": True}})
         except Exception as exc:  # noqa: BLE001
             logger.warning("Не удалось применить форматирование строки %s: %s", row_idx, exc)
 
     # 5. Ширина столбцов
     try:
-        worksheet.columns_auto_resize(1, 1 + num_months * 2)
+        worksheet.columns_auto_resize(1, last_col)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 

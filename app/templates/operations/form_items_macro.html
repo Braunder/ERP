@@ -1,0 +1,12 @@
+{% set op_items = [] %}
+{% if operation and operation.items %}
+    {% for item in operation.items %}
+        {% set _ = op_items.append({
+            'product_id': item.product_id,
+            'name': item.name,
+            'price': (str(item.price) if item.price else '0'),
+            'quantity': (str(item.quantity) if item.quantity else '1'),
+            'unit': item.unit,
+        }) %}
+    {% endfor %}
+{% endif %}

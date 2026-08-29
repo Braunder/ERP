@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     BACKUP_DIR: str = "backups"
     BACKUP_KEEP: int = 7
     BACKUP_SCHEDULE: str = "0 3 * * *"
+    TIMEZONE: str = "Europe/Moscow"
 
 
 @lru_cache

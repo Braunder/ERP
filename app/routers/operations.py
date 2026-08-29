@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Supplier
+from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Product, Supplier
 from app.schemas import OperationCreate, OperationRead
 
 
@@ -44,7 +44,7 @@ def _log_change(
     )
 
 
-def _parse_items_from_form(form) -> list[OperationItem]:
+def _parse_items_from_form(form, db: Session | None = None) -> list[OperationItem]:
     """Разбирает динамические поля items[i][field] из form-data."""
     raw: dict[int, dict[str, str]] = defaultdict(dict)
     for key, value in form.multi_items():
@@ -57,13 +57,35 @@ def _parse_items_from_form(form) -> list[OperationItem]:
     items: list[OperationItem] = []
     for idx in sorted(raw.keys()):
         data = raw[idx]
+        product_id_raw = data.get("product_id")
         name = (data.get("name") or "").strip()
-        if not name:
+        is_custom = product_id_raw == "custom"
+        has_product_id = product_id_raw is not None and str(product_id_raw).strip() != "" and not is_custom
+        if not name and is_custom:
             continue
-        product_id = data.get("product_id")
+        product_id = None
+        if product_id_raw == "custom":
+            if db:
+                product = Product(name=name, unit=data.get("unit") or "шт", is_active=True)
+                db.add(product)
+                db.flush()
+                product_id = product.id
+            else:
+                product_id = None
+        else:
+            try:
+                product_id = int(product_id_raw) if product_id_raw else None
+            except ValueError:
+                product_id = None
+            if product_id and not name and db:
+                product = db.query(Product).filter(Product.id == product_id).first()
+                if product:
+                    name = product.name
+        if not product_id and not name:
+            continue
         items.append(
             OperationItem(
-                product_id=int(product_id) if product_id else None,
+                product_id=product_id,
                 name=name,
                 price=Decimal(data.get("price") or "0"),
                 quantity=Decimal(data.get("quantity") or "1"),
@@ -109,22 +131,23 @@ def _validate_operation_form(
 async def operations_list(
     request: Request,
     db: Session = Depends(get_db),
-    kind: str | None = Query(None),
-    category_id: int | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
+    kind: str | None = Query(None, description="Optional"),
+    category_id: str | None = Query(None, description="Optional"),
+    date_from: str | None = Query(None, description="Optional"),
+    date_to: str | None = Query(None, description="Optional"),
 ):
     query = db.query(Operation).options(
-        joinedload(Operation.category).joinedload(Category.parent)
+        joinedload(Operation.category).joinedload(Category.parent),
+        joinedload(Operation.items).joinedload(OperationItem.product),
     )
     if kind:
         query = query.filter(Operation.kind == kind)
-    if category_id:
-        query = query.filter(Operation.category_id == category_id)
-    if date_from:
-        query = query.filter(Operation.date >= date_from)
-    if date_to:
-        query = query.filter(Operation.date <= date_to)
+    if category_id and str(category_id).strip() not in ("", "None"):
+        query = query.filter(Operation.category_id == int(category_id))
+    if date_from and str(date_from).strip() not in ("", "None"):
+        query = query.filter(Operation.date >= date.fromisoformat(date_from))
+    if date_to and str(date_to).strip() not in ("", "None"):
+        query = query.filter(Operation.date <= date.fromisoformat(date_to))
 
     operations = query.order_by(Operation.date.desc(), Operation.id.desc()).all()
     categories = db.query(Category).order_by(Category.kind, Category.name).all()
@@ -240,7 +263,7 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
     employee_id = int(data["employee_id"]) if data.get("employee_id") else None
     responsible = data.get("responsible") or None
 
-    items = _parse_items_from_form(form)
+    items = _parse_items_from_form(form, db)
     _validate_operation_form(
         category=category,
         kind=kind,
@@ -290,7 +313,7 @@ async def operation_update(
 ):
     operation = (
         db.query(Operation)
-        .options(joinedload(Operation.items))
+        .options(joinedload(Operation.items).joinedload(OperationItem.product))
         .filter(Operation.id == operation_id)
         .first()
     )
@@ -312,7 +335,7 @@ async def operation_update(
     employee_id = int(data["employee_id"]) if data.get("employee_id") else None
     responsible = data.get("responsible") or None
 
-    items = _parse_items_from_form(form)
+    items = _parse_items_from_form(form, db)
     _validate_operation_form(
         category=category,
         kind=kind,
@@ -388,10 +411,10 @@ async def operation_delete(operation_id: int, db: Session = Depends(get_db)):
 @router.get("/api/operations", response_model=list[OperationRead])
 async def api_operations_list(
     db: Session = Depends(get_db),
-    kind: str | None = Query(None),
-    category_id: int | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
+    kind: str | None = Query(None, description="Optional"),
+    category_id: str | None = Query(None, description="Optional"),
+    date_from: str | None = Query(None, description="Optional"),
+    date_to: str | None = Query(None, description="Optional"),
 ):
     query = db.query(Operation).options(
         joinedload(Operation.category),
@@ -401,12 +424,12 @@ async def api_operations_list(
     )
     if kind:
         query = query.filter(Operation.kind == kind)
-    if category_id:
-        query = query.filter(Operation.category_id == category_id)
-    if date_from:
-        query = query.filter(Operation.date >= date_from)
-    if date_to:
-        query = query.filter(Operation.date <= date_to)
+    if category_id and str(category_id).strip() not in ("", "None"):
+        query = query.filter(Operation.category_id == int(category_id))
+    if date_from and str(date_from).strip() not in ("", "None"):
+        query = query.filter(Operation.date >= date.fromisoformat(date_from))
+    if date_to and str(date_to).strip() not in ("", "None"):
+        query = query.filter(Operation.date <= date.fromisoformat(date_to))
     return query.order_by(Operation.date.desc(), Operation.id.desc()).all()
 
 

@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import Category, Employee, Operation, ReportGroup
+from app.models import Category, Employee, Investment, Operation, ReportGroup
 
 MONTH_NAMES = [
     "январь",
@@ -76,15 +76,15 @@ def _month_label(year: int, month: int, years: set[int]) -> str:
     return label
 
 
-def _months_range(operations: list[Operation]) -> list[tuple[int, int, str]]:
+def _months_range(records: list[Operation | Investment]) -> list[tuple[int, int, str]]:
     """Возвращает список (year, month, label), отсортированный по хронологии."""
-    if not operations:
+    if not records:
         today = date.today()
         return [(today.year, today.month, _month_label(today.year, today.month, {today.year}))]
 
     months_set: set[tuple[int, int]] = set()
     years: set[int] = set()
-    for op in operations:
+    for op in records:
         months_set.add((op.date.year, op.date.month))
         years.add(op.date.year)
 
@@ -100,6 +100,23 @@ def _collect_operations(db: Session) -> list[Operation]:
         .order_by(Operation.date)
         .all()
     )
+
+
+def _collect_investments(db: Session) -> list[Investment]:
+    return db.query(Investment).order_by(Investment.date).all()
+
+
+def _aggregate_investments(
+    investments: list[Investment],
+    months: list[tuple[int, int, str]],
+) -> list[Decimal]:
+    month_index = {(year, month): index for index, (year, month, _) in enumerate(months)}
+    amounts = [Decimal("0") for _ in months]
+    for investment in investments:
+        index = month_index.get((investment.date.year, investment.date.month))
+        if index is not None:
+            amounts[index] += investment.amount
+    return amounts
 
 
 def _aggregate(
@@ -231,11 +248,61 @@ def _group_row(
     return row
 
 
+def _blank_separator(section: str, n: int) -> ReportRow:
+    return ReportRow(
+        label="",
+        section=f"{section}_separator",
+        level=0,
+        values=[RowValue(amount=Decimal("0"), percent=Decimal("0"), raw=False) for _ in range(n)],
+    )
+
+
+def _section_total_row(
+    section: str,
+    label: str,
+    totals: list[Decimal],
+    months: list[tuple[int, int, str]],
+    revenue: list[Decimal],
+    background: str | None,
+) -> ReportRow:
+    return ReportRow(
+        label=label,
+        section=section,
+        level=0,
+        bold=True,
+        background=background,
+        values=_calc_row(months, revenue, totals),
+    )
+
+
+def _append_section(
+    rows: list[ReportRow],
+    section: str,
+    label: str,
+    section_rows: list[ReportRow],
+    totals: list[Decimal],
+    months: list[tuple[int, int, str]],
+    revenue: list[Decimal],
+    background: str | None,
+    n: int,
+) -> None:
+    if not _is_zero(totals):
+        header = _section_total_row(section, label, totals, months, revenue, background)
+        duplicate_rows = [row for row in section_rows if row.label == label]
+        for duplicate in duplicate_rows:
+            header.subrows.extend(duplicate.subrows)
+        rows.append(header)
+        rows.extend(row for row in section_rows if row.label != label)
+    rows.append(_blank_separator(section, n))
+
+
 def build_report(db: Session) -> ReportData:
     """Строит отчёт P&L по месяцам на основе групп отчёта из БД."""
     operations = _collect_operations(db)
-    months = _months_range(operations)
+    investments = _collect_investments(db)
+    months = _months_range([*operations, *investments])
     revenue, by_group, by_employee, by_group_category = _aggregate(operations, months)
+    investment_amounts = _aggregate_investments(investments, months)
     n = len(months)
 
     groups = (
@@ -246,80 +313,99 @@ def build_report(db: Session) -> ReportData:
 
     rows: list[ReportRow] = []
 
-    # Выручка всего
-    rows.append(
-        ReportRow(
-            label="Выручка всего",
-            section="revenue_total",
-            level=0,
-            bold=True,
-            background="yellow",
-            values=_calc_row(months, revenue, revenue),
-        )
-    )
-
     # Итоги по секциям (для строк «... всего» и прибыли)
     section_totals: dict[str, list[Decimal]] = defaultdict(
         lambda: [Decimal("0") for _ in range(n)]
     )
+    rows_by_section: dict[str, list[ReportRow]] = defaultdict(list)
 
     # Строки групп отчёта с категориями внутри; нулевые группы пропускаются
     for group in groups:
         row = _group_row(group, months, revenue, by_group, by_group_category, by_employee)
         if row is None:
             continue
-        rows.append(row)
+        rows_by_section[group.section].append(row)
         totals = section_totals[group.section]
         vals = by_group.get(group.id, [Decimal("0") for _ in range(n)])
         for i in range(n):
             totals[i] += vals[i]
 
-    # Итоговые строки по секциям расходов и налогов
+    # Выручка: заголовок секции + все группы дохода
+    if not _is_zero(revenue):
+        rows.append(
+            _section_total_row("revenue", "Выручка всего", revenue, months, revenue, "yellow")
+        )
+        rows.extend(rows_by_section.get("revenue", []))
+        rows.append(_blank_separator("revenue", n))
+
+    # Прямые расходы: заголовок секции + все группы прямых расходов
     direct_totals = section_totals.get("direct", [Decimal("0") for _ in range(n)])
+    _append_section(
+        rows,
+        "direct",
+        "Прямые расходы",
+        rows_by_section.get("direct", []),
+        direct_totals,
+        months,
+        revenue,
+        "blue",
+        n,
+    )
+
+    # Накладные расходы: заголовок секции + все группы накладных расходов
     overhead_totals = section_totals.get("overhead", [Decimal("0") for _ in range(n)])
-    taxes_totals = section_totals.get("taxes", [Decimal("0") for _ in range(n)])
+    _append_section(
+        rows,
+        "overhead",
+        "Накладные расходы",
+        rows_by_section.get("overhead", []),
+        overhead_totals,
+        months,
+        revenue,
+        "blue",
+        n,
+    )
 
-    if not _is_zero(direct_totals):
-        rows.append(
-            ReportRow(
-                label="Прямые расходы всего",
-                section="direct_total",
-                level=0,
-                bold=True,
-                background="blue",
-                values=_calc_row(months, revenue, direct_totals),
-            )
-        )
+    # Остальные группы отчёта (например, налоги и прочее)
+    other_section_rows = []
+    other_sections = {"revenue", "direct", "overhead"}
+    for section in sorted(rows_by_section, key=lambda s: (s not in {"other", "taxes"}, s)):
+        if section in other_sections:
+            continue
+        other_section_rows.extend(rows_by_section.get(section, []))
 
-    if not _is_zero(overhead_totals):
+    if other_section_rows:
+        other_totals = [Decimal("0") for _ in range(n)]
+        for section in rows_by_section:
+            if section in other_sections:
+                continue
+            for i in range(n):
+                other_totals[i] += section_totals.get(section, [Decimal("0") for _ in range(n)])[i]
         rows.append(
-            ReportRow(
-                label="Накладные расходы всего",
-                section="overhead_total",
-                level=0,
-                bold=True,
-                background="blue",
-                values=_calc_row(months, revenue, overhead_totals),
-            )
+            _section_total_row("other", "Другие группы", other_totals, months, revenue, "blue")
         )
-
-    if not _is_zero(taxes_totals):
-        rows.append(
-            ReportRow(
-                label="Налоги и сборы всего",
-                section="taxes_total",
-                level=0,
-                bold=True,
-                background="blue",
-                values=_calc_row(months, revenue, taxes_totals),
-            )
-        )
+        rows.extend(other_section_rows)
+        rows.append(_blank_separator("other", n))
 
     # Прибыль
     profit_amounts = [
-        revenue[i] - direct_totals[i] - overhead_totals[i] - taxes_totals[i]
+        revenue[i] - direct_totals[i] - overhead_totals[i] - (
+            sum(section_totals.get(s, [Decimal("0") for _ in range(n)])[i] for s in rows_by_section if s not in {"revenue", "direct", "overhead"})
+        )
         for i in range(n)
     ]
+
+    # Прибыль уже считается по всем расходам, включая налоги и прочее.
+    # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.
+    other_total_all = [Decimal("0") for _ in range(n)]
+    for section, totals in section_totals.items():
+        if section == "revenue":
+            continue
+        for i in range(n):
+            other_total_all[i] += totals[i]
+
+    profit_amounts = [revenue[i] - other_total_all[i] for i in range(n)]
+
     rows.append(
         ReportRow(
             label="Прибыль",
@@ -338,26 +424,30 @@ def build_report(db: Session) -> ReportData:
     for i in range(n):
         running += profit_amounts[i]
         cumulative[i] = running
+    # Общая сумма за всё время — в колонке B (первый столбец данных)
+    cumulative_first = [sum(cumulative, start=Decimal("0"))]
     rows.append(
         ReportRow(
-            label="прибыль итого",
+            label="Прибыль итого",
             section="cumulative_profit",
             level=1,
             bold=True,
             skip_percent=True,
-            values=_calc_row(months, revenue, cumulative, skip_percent=True),
+            values=[RowValue(amount=amt, percent=Decimal("0"), raw=True) for amt in cumulative_first],
         )
     )
 
-    # Инвестиции (пустая строка для ручного заполнения)
+    # Инвестиции вводятся на отдельной вкладке и попадают в отчёт по месяцам.
+    # Общая сумма — в колонке B.
+    investment_first = [sum(investment_amounts, start=Decimal("0"))]
     rows.append(
         ReportRow(
-            label="инвестиции",
+            label="Инвестиции",
             section="manual",
             level=1,
             bold=True,
             skip_percent=True,
-            values=[RowValue(amount=Decimal("0"), percent=Decimal("0"), raw=False) for _ in range(n)],
+            values=[RowValue(amount=amt, percent=Decimal("0"), raw=True) for amt in investment_first],
         )
     )
 
@@ -372,11 +462,11 @@ def report_to_matrix(report: ReportData) -> list[list]:
     months = report.months
 
     # Заголовок месяцев: первая ячейка пустая, затем для каждого месяца название (объединяется в два столбца)
-    header1 = [""]
+    header1: list[object] = [""]
     for label in months:
         header1.extend([label, ""])
 
-    header2 = [""]
+    header2: list[object] = [""]
     for _ in months:
         header2.extend(["сумма", "%"])
 
@@ -395,7 +485,7 @@ def report_to_matrix(report: ReportData) -> list[list]:
         return result
 
     def append_row(row: ReportRow):
-        line = [row.label]
+        line: list[object] = [row.label]
         row_number = len(matrix) + 1
         for i, val in enumerate(row.values):
             # Столбец суммы месяца i (1-based): B, D, F, ...

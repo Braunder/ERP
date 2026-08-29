@@ -144,9 +144,35 @@
     </tr>
 </template>
 
+{% set op_items = [] %}
+{% if operation and operation.items %}
+    {% for item in operation.items %}
+        {% set _ = op_items.append({
+            'product_id': item.product_id,
+            'name': item.name,
+            'price': (item.price|string) if item.price else '0',
+            'quantity': (item.quantity|string) if item.quantity else '1',
+            'unit': item.unit,
+        }) %}
+    {% endfor %}
+{% endif %}
+
 <script>
 window.ERP_FORM = {
-    operation: {{ operation|tojson if operation else 'null' }},
+    operation: {{ {
+        'id': operation.id if operation else None,
+        'date': operation.date.isoformat() if operation and operation.date else None,
+        'kind': operation.kind if operation else None,
+        'category_id': operation.category_id if operation else None,
+        'amount': (operation.amount|string) if operation and operation.amount else None,
+        'comment': operation.comment if operation else None,
+        'guests_count': operation.guests_count if operation else None,
+        'payment_method': operation.payment_method if operation else None,
+        'supplier_id': operation.supplier_id if operation else None,
+        'employee_id': operation.employee_id if operation else None,
+        'responsible': operation.responsible if operation else None,
+        'items': op_items,
+    }|tojson }},
     suppliers: {{ suppliers|map(attribute='id')|list|tojson }},
     employees: {{ employees|map(attribute='name')|list|tojson }},
 };

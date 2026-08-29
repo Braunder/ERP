@@ -49,6 +49,10 @@
                 <th>Комментарий</th>
                 <th>Гости</th>
                 <th>Оплата</th>
+                <th>Поставщик</th>
+                <th>Сотрудник</th>
+                <th>Ответственный</th>
+                <th>Продукты</th>
                 <th></th>
             </tr>
         </thead>
@@ -68,16 +72,28 @@
                 <td>{{ operation.comment or '' }}</td>
                 <td>{{ operation.guests_count or '' }}</td>
                 <td>{{ payment_labels.get(operation.payment_method, operation.payment_method or '') }}</td>
+                <td>{{ operation.supplier.name if operation.supplier else '—' }}</td>
+                <td>{{ operation.employee.name if operation.employee else '—' }}</td>
+                <td>{{ operation.responsible or '—' }}</td>
+                <td>
+                    {% if operation.items %}
+                        {% for item in operation.items %}
+                            {{ item.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
                 <td class="actions">
-                    <a class="btn btn-small" href="/operations/{{ operation.id }}/edit">Редактировать</a>
+                    <a class="btn btn" href="/operations/{{ operation.id }}/edit">✏️</a>
                     <form method="post" action="/operations/{{ operation.id }}/delete" class="inline" onsubmit="return confirmDelete()">
-                        <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                        <button type="submit" class="btn btn btn-danger">🗑️</button>
                     </form>
                 </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="8" class="empty">Операций пока нет</td>
+                <td colspan="11" class="empty">Операций пока нет</td>
             </tr>
             {% endfor %}
         </tbody>

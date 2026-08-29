@@ -82,25 +82,26 @@ def test_build_report_totals(client):
     # Категория «Лавка» внутри группы «Доход»
     assert any(sub.label == "· Лавка" for sub in lavka_row.subrows)
 
-    direct_total = rows_by_label["Прямые расходы всего"]
-    assert direct_total.values[0].amount == 300
-    assert direct_total.values[0].percent == 30
+    direct_section = rows_by_label["Прямые расходы"]
+    assert direct_section.values[0].amount == 300
+    assert direct_section.values[0].percent == 30
 
-    overhead_total = rows_by_label["Накладные расходы всего"]
-    assert overhead_total.values[0].amount == 100
-    assert overhead_total.values[0].percent == 10
+    overhead_section = rows_by_label["Накладные расходы"]
+    assert overhead_section.values[0].amount == 100
+    assert overhead_section.values[0].percent == 10
+
+    other_section = rows_by_label["Другие группы"]
+    assert other_section.values[0].amount == 50
+    assert other_section.values[0].percent == 5
 
     taxes_row = rows_by_label["Налоги и сборы"]
     assert taxes_row.values[0].amount == 50
     assert taxes_row.values[0].percent == 5
 
-    taxes_total = rows_by_label["Налоги и сборы всего"]
-    assert taxes_total.values[0].amount == 50
-
     profit_row = rows_by_label["Прибыль"]
     assert profit_row.values[0].amount == 550
 
-    cumulative_row = rows_by_label["прибыль итого"]
+    cumulative_row = rows_by_label["Прибыль итого"]
     assert cumulative_row.values[0].amount == 550
 
 
@@ -133,3 +134,37 @@ def test_report_matrix_shape(client):
     assert matrix[1][2] == "%"
     # Хотя бы одна строка данных
     assert len(matrix) > 2
+
+
+def test_investment_tab_and_report_row(client):
+    client.post("/login", data={"password": "admin"})
+
+    response = client.post(
+        "/investments",
+        data={
+            "investment_date": "2026-08-15",
+            "amount": "12500,50",
+            "comment": "Оборудование",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    page = client.get("/investments")
+    assert page.status_code == 200
+    assert "Оборудование" in page.text
+    assert "12500.50" in page.text
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+    finally:
+        db.close()
+
+    investment_row = next(row for row in report.rows if row.label == "Инвестиции")
+    assert report.months == ["август"]
+    assert investment_row.values[0].amount == 12500.50
+
+    matrix = report_to_matrix(report)
+    investment_matrix_row = next(row for row in matrix if row[0] == "Инвестиции")
+    assert investment_matrix_row[1] == 12500.5

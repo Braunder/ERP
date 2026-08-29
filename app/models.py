@@ -1,5 +1,5 @@
 """Модели данных SQLAlchemy 2.0 (typed mapped)."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -10,7 +10,7 @@ from app.database import Base
 
 
 class ReportGroup(Base):
-    """Группа отчёта P&L (например, «Прямой расход», «Накладный расход»).
+    """Группа отчёта P&L (например, «Прямой расход», «Накладные расходы»).
 
     Порядок вывода в отчёте задаётся полем sort_order.
     """
@@ -130,6 +130,17 @@ class Operation(Base):
     items: Mapped[list["OperationItem"]] = relationship(
         back_populates="operation", cascade="all, delete-orphan", order_by="OperationItem.id"
     )
+
+
+class Investment(Base):
+    """Инвестиционное вложение, отображаемое отдельной строкой P&L."""
+
+    __tablename__ = "investments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class OperationItem(Base):

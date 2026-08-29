@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Тесты
+tests/
+.pytest_cache/
+
+# Данные и логи
+data/
+logs/
+*.db
+*.sqlite
+
+# Alembic
+alembic/versions/*.pyc
+
+# Документация
+README.md
+TODO.md
+*.md
+
+# Временные файлы
+*.log
+*.tmp

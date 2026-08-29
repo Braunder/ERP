@@ -1,4 +1,5 @@
 """Тесты синхронизации с Google Sheets."""
+import time
 from unittest.mock import MagicMock
 
 from app.config import settings
@@ -70,10 +71,20 @@ def test_sync_now_success(client, monkeypatch):
     )
 
     response = client.post("/sync/now")
-    assert response.status_code == 200
+    assert response.status_code == 202
     data = response.json()
     assert data["success"] is True
-    assert data["synced"] > 0
+
+    status_data = None
+    for _ in range(20):
+        status_response = client.get(f"/api/sync/status/{data['job_id']}")
+        status_data = status_response.json()
+        if status_data["status"] in {"success", "error"}:
+            break
+        time.sleep(0.01)
+
+    assert status_data["status"] == "success"
+    assert status_data["synced"] > 0
 
     logs_response = client.get("/api/sync/logs")
     assert logs_response.status_code == 200

@@ -1,5 +1,8 @@
 """Фоновый планировщик синхронизации с Google Sheets."""
 import logging
+from datetime import datetime
+
+import pytz
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -11,7 +14,7 @@ from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
 
 
 def sync_job() -> None:

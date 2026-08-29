@@ -61,17 +61,37 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/sync/now", { method: "POST" });
       const data = await res.json();
 
-      if (data.success) {
-        status.classList.add("alert-success");
-        status.textContent = `Синхронизация завершена: ${data.synced} операций`;
-      } else {
+      if (!data.success) {
         status.classList.add("alert-error");
         status.textContent = `Ошибка: ${data.error}`;
+        status.style.display = "block";
+        btn.disabled = false;
+        return;
       }
+
+      status.classList.add("alert-success");
+      status.textContent = "Синхронизация выполняется в фоне...";
+      status.style.display = "block";
+
+      const pollStatus = async () => {
+        const pollResponse = await fetch(`/api/sync/status/${data.job_id}`);
+        const pollData = await pollResponse.json();
+        if (pollData.status === "queued" || pollData.status === "running") {
+          window.setTimeout(pollStatus, 1000);
+          return;
+        }
+        if (pollData.status === "success") {
+          status.textContent = `Синхронизация завершена: ${pollData.synced} операций`;
+        } else {
+          status.className = "alert alert-error";
+          status.textContent = `Ошибка: ${pollData.error}`;
+        }
+        btn.disabled = false;
+      };
+      window.setTimeout(pollStatus, 500);
     } catch (err) {
       status.classList.add("alert-error");
       status.textContent = `Ошибка запроса: ${err}`;
-    } finally {
       status.style.display = "block";
       btn.disabled = false;
     }

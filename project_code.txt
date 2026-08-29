@@ -1,3 +1,48 @@
+# .dockerignore
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Тесты
+tests/
+.pytest_cache/
+
+# Данные и логи
+data/
+logs/
+*.db
+*.sqlite
+
+# Alembic
+alembic/versions/*.pyc
+
+# Документация
+README.md
+TODO.md
+*.md
+
+# Временные файлы
+*.log
+*.tmp
+
+
 # .env
 # Подключение к БД (SQLite по умолчанию)
 DATABASE_URL=sqlite:///data/app.db
@@ -18,7 +63,7 @@ SYNC_SCHEDULE="0 2 * * *"
 BACKUP_DIR=backups
 BACKUP_KEEP=7
 BACKUP_SCHEDULE=0 3 * * *
-
+TIMEZONE=Europe/Moscow
 
 # .env.example
 # Подключение к БД (SQLite по умолчанию)
@@ -212,6 +257,38 @@ formatter = generic
 [formatter_generic]
 format = %(levelname)-5.5s [%(name)s] %(message)s
 datefmt = %H:%M:%S
+
+
+# Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копирование зависимостей
+COPY requirements.txt .
+
+# Установка Python зависимостей
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копирование остального кода
+COPY . .
+
+# Создание директорий для данных
+RUN mkdir -p data logs backups
+
+# Установка прав
+RUN chmod +x run.py
+
+# Экспорт переменных окружения
+ENV PYTHONUNBUFFERED=1
+
+# Запуск приложения
+CMD ["python", "run.py"]
 
 
 # README.md
@@ -438,7 +515,7 @@ import uvicorn
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8888, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8111, reload=True)
 
 
 # TODO.md
@@ -446,73 +523,73 @@ if __name__ == "__main__":
 
 ## Фаза 1: Инфраструктура и структура данных
 
-- [ ] Развёртывание FastAPI: структура проекта, зависимости, env, логирование, CORS, базовые роуты
-- [ ] Модели данных (SQLAlchemy): операции, категории, поставщики, продукты, сотрудники, история изменений. Миграции
-- [ ] Наполнение справочников фиксированной структурой категорий доходов и расходов (по согласованной схеме)
-- [ ] Базовая админ-панель для просмотра и первичного редактирования данных
+- [x] Развёртывание FastAPI: структура проекта, зависимости, env, логирование, CORS, базовые роуты
+- [x] Модели данных (SQLAlchemy): операции, категории, поставщики, продукты, сотрудники, история изменений. Миграции
+- [x] Наполнение справочников фиксированной структурой категорий доходов и расходов (по согласованной схеме)
+- [x] Базовая админ-панель для просмотра и первичного редактирования данных
 
 ## Фаза 2: Web-интерфейс занесения и редактирования
 
-- [ ] Форма занесения операции с динамическими полями: тип/подтип категории, подтип «Аренды», количество гостей (кроме аренды), способ оплаты
-- [ ] Мульти-ввод продуктов: список из нескольких строк (наименование, цена, кол-во/вес) в одном окне без повторного открытия формы
-- [ ] Поле «Комментарий» для всех статей доходов/расходов; логика статьи «Списания → Съели сами» (выбор Ира/Илья); категория дохода «Открытые события»
-- [ ] Раздел «Редактирование»: правка внесённых операций, CRUD справочников категорий, поставщиков, продуктов и сотрудников
-- [ ] Адаптивная вёрстка интерфейса под мобильные устройства
+- [x] Форма занесения операции с динамическими полями: тип/подтип категории, подтип «Аренды», количество гостей (кроме аренды), способ оплаты
+- [x] Мульти-ввод продуктов: список из нескольких строк (наименование, цена, кол-во/вес) в одном окне без повторного открытия формы
+- [x] Поле «Комментарий» для всех статей доходов/расходов; логика статьи «Списания → Съели сами» (выбор Ира/Илья); категория дохода «Открытые события»
+- [x] Раздел «Редактирование»: правка внесённых операций, CRUD справочников категорий, поставщиков, продуктов и сотрудников
+- [x] Адаптивная вёрстка интерфейса под мобильные устройства
 
 ## Фаза 3: Графики и синхронизация с Google Таблицей
 
-- [ ] Графики доходов/расходов с фильтрами по типу, категории, периоду и способу оплаты (Chart.js)
-- [ ] Интеграция Google Sheets API: сервисный аккаунт, подключение к таблице Заказчика
-- [ ] Логика односторонней синхронизации Web → Google Таблица (по кнопке и/или по расписанию), логирование операций
-- [ ] Обработка ошибок синхронизации (недоступность API, превышение лимитов запросов)
+- [x] Графики доходов/расходов с фильтрами по типу, категории, периоду и способу оплаты (Chart.js)
+- [x] Интеграция Google Sheets API: сервисный аккаунт, подключение к таблице Заказчика
+- [x] Логика односторонней синхронизации Web → Google Таблица (по кнопке и/или по расписанию), логирование операций
+- [x] Обработка ошибок синхронизации (недоступность API, превышение лимитов запросов)
 
 ## Фаза 4: Резервное копирование, тестирование и запуск
 
-- [ ] Автоматическое резервное копирование базы данных по расписанию, хранение N последних копий
-- [ ] Health-check эндпоинт / базовая проверка доступности сервиса (VPS)
-- [ ] Функциональное тестирование (E2E): занесение → редактирование → графики → синхронизация
-- [ ] Исправление ошибок по итогам тестирования
-- [ ] Деплой на VPS / хостинг Заказчика, передача доступов и краткой инструкции
+- [x] Автоматическое резервное копирование базы данных по расписанию, хранение N последних копий
+- [x] Health-check эндпоинт / базовая проверка доступности сервиса (VPS)
+- [x] Функциональное тестирование (E2E): занесение → редактирование → графики → синхронизация
+- [x] Исправление ошибок по итогам тестирования
+- [ ] Деплой на VPS / хостинг Заказчика, передача доступов и краткой инструкции (По согласованию)
 
 ## Дополнительные требования (из функциональных блоков)
 
 ### Занесение сумм
-- [ ] Выбор типа операции: Доход / Расход
-- [ ] Для Дохода — выбор категории: Лавка, Ужины/Обеды, Выездные мероприятия, Открытые события, Доставка продуктов, Комиссия, Аренда
-- [ ] Для категории «Аренда» — дополнительный выбор подтипа: Оборудование, Посуда, Площадка
-- [ ] Для всех категорий Дохода, кроме «Аренды» — поле ввода количества гостей
-- [ ] Способ оплаты (для Дохода): Нал, Б/Нал, Перевод
-- [ ] Для Расхода — выбор категории по утверждённой многоуровневой структуре, включая подкатегории с выбором поставщика, товара, сотрудника и т.д.
-- [ ] Для статьи «Списания → Съели сами» — выбор ответственного: Ира / Илья
-- [ ] Поле «Сумма» — числовое, обязательное
-- [ ] Поле «Комментарий» — текстовое, необязательное (для всех статей)
+- [x] Выбор типа операции: Доход / Расход
+- [x] Для Дохода — выбор категории: Лавка, Ужины/Обеды, Выездные мероприятия, Открытые события, Доставка продуктов, Комиссия, Аренда
+- [x] Для категории «Аренда» — дополнительный выбор подтипа: Оборудование, Посуда, Площадка
+- [x] Для всех категорий Дохода, кроме «Аренды» — поле ввода количества гостей
+- [x] Способ оплаты (для Дохода): Нал, Б/Нал, Перевод
+- [x] Для Расхода — выбор категории по утверждённой многоуровневой структуре, включая подкатегории с выбором поставщика, товара, сотрудника и т.д.
+- [x] Для статьи «Списания → Съели сами» — выбор ответственного: Ира / Илья
+- [x] Поле «Сумма» — числовое, обязательное
+- [x] Поле «Комментарий» — текстовое, необязательное (для всех статей)
 
 ### Редактирование
-- [ ] Просмотр и правка ранее внесённых доходов и расходов
-- [ ] Добавление новых типов дохода/расхода (расширение справочника категорий)
-- [ ] Управление списком поставщиков (добавление / редактирование / удаление)
-- [ ] Управление каталогом продуктов и закупочных цен по поставщикам
-- [ ] Управление списком сотрудников (для статьи «Зп сотрудники» и выбора «Съели сами»)
+- [x] Просмотр и правка ранее внесённых доходов и расходов
+- [x] Добавление новых типов дохода/расхода (расширение справочника категорий)
+- [x] Управление списком поставщиков (добавление / редактирование / удаление)
+- [x] Управление каталогом продуктов и закупочных цен по поставщикам
+- [x] Управление списком сотрудников (для статьи «Зп сотрудники» и выбора «Съели сами»)
 
 ### Графики
-- [ ] Визуализация доходов/расходов: динамика по периодам, разбивка по категориям
-- [ ] Фильтры: по типу операции (Доход/Расход), по категории, по периоду (диапазон дат), по способу оплаты
+- [x] Визуализация доходов/расходов: динамика по периодам, разбивка по категориям
+- [x] Фильтры: по типу операции (Доход/Расход), по категории, по периоду (диапазон дат), по способу оплаты
 
 ### Синхронизация с Google Таблицей
-- [ ] Односторонняя выгрузка данных из Web-системы в Google Таблицу Заказчика — по кнопке «Синхронизировать» и/или по расписанию
-- [ ] Состав выгружаемых данных: дата, тип операции, категория, подкатегория, сумма, комментарий, количество гостей, способ оплаты
+- [x] Односторонняя выгрузка данных из Web-системы в Google Таблицу Заказчика — по кнопке «Синхронизировать» и/или по расписанию
+- [x] Состав выгружаемых данных: дата, тип операции, категория, подкатегория, сумма, комментарий, количество гостей, способ оплаты
 
 ### Резервное копирование
-- [ ] Автоматическое резервное копирование базы данных по расписанию (например, ежедневно)
-- [ ] Хранение заданного количества последних копий с возможностью восстановления
+- [x] Автоматическое резервное копирование базы данных по расписанию (например, ежедневно)
+- [x] Хранение заданного количества последних копий с возможностью восстановления
 
 ### Проверка VPS / мониторинг
-- [ ] Health-check эндпоинт для проверки доступности сервиса
+- [x] Health-check эндпоинт для проверки доступности сервиса
 - [ ] Базовое уведомление о недоступности сервиса — при технической возможности
 
 ### Web-интерфейс
-- [ ] Единый адаптивный интерфейс, доступный с ПК и мобильных устройств через браузер
-- [ ] Базовая защита доступа паролем на уровне сервера (по согласованию; без многопользовательской авторизации/ролей в рамках MVP)
+- [x] Единый адаптивный интерфейс, доступный с ПК и мобильных устройств через браузер
+- [x] Базовая защита доступа паролем на уровне сервера (по согласованию; без многопользовательской авторизации/ролей в рамках MVP)
 
 # .pytest_cache\.gitignore
 # Created by pytest automatically.
@@ -860,6 +937,166 @@ def downgrade() -> None:
     # ### end Alembic commands ###
 
 
+# alembic\versions\a1b2c3d4e5f6_report_groups.py
+"""report groups table, categories.report_group -> report_group_id
+
+Revision ID: a1b2c3d4e5f6
+Revises: 8ef295c387db
+Create Date: 2026-08-25 12:00:00.000000
+
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision: str = 'a1b2c3d4e5f6'
+down_revision: Union[str, Sequence[str], None] = '8ef295c387db'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+# Маппинг старых строковых групп -> (имя новой группы, section, sort_order)
+_GROUP_DEFS = {
+    "revenue_lavka": ("Доход", "revenue", 10),
+    "revenue_catering": ("Доход", "revenue", 10),
+    "revenue_rent": ("Доход", "revenue", 10),
+    "revenue_commission": ("Доход", "revenue", 10),
+    "direct_products": ("Прямой расход", "direct", 20),
+    "direct_catering_cost": ("Прямой расход", "direct", 20),
+    "direct_animal_feed": ("Прямой расход", "direct", 20),
+    "direct_gas": ("Прямой расход", "direct", 20),
+    "direct_meals": ("Прямой расход", "direct", 20),
+    "direct_wages": ("Прямой расход", "direct", 20),
+    "direct_operational": ("Прямой расход", "direct", 20),
+    "direct_other": ("Прямой расход", "direct", 20),
+    "overhead_equaring": ("Накладные расходы", "overhead", 30),
+    "overhead_delivery": ("Накладные расходы", "overhead", 30),
+    "overhead_wifi": ("Накладные расходы", "overhead", 30),
+    "overhead_bank": ("Накладные расходы", "overhead", 30),
+    "overhead_it": ("Накладные расходы", "overhead", 30),
+    "overhead_electricity": ("Накладные расходы", "overhead", 30),
+    "overhead_finance": ("Накладные расходы", "overhead", 30),
+    "overhead_marketing": ("Накладные расходы", "overhead", 30),
+    "overhead_equipment": ("Накладные расходы", "overhead", 30),
+    "overhead_rent": ("Накладные расходы", "overhead", 30),
+    "overhead_other": ("Накладные расходы", "overhead", 30),
+    "taxes": ("Налоги и сборы", "taxes", 40),
+    "investments": ("Инвестиции", "other", 50),
+}
+
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    op.create_table(
+        'report_groups',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(length=200), nullable=False),
+        sa.Column('section', sa.String(length=20), nullable=False, server_default='direct'),
+        sa.Column('sort_order', sa.Integer(), nullable=False, server_default='100'),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.PrimaryKeyConstraint('id'),
+    )
+
+    conn = op.get_bind()
+    # Переносим старые строковые группы в таблицу report_groups
+    rows = conn.execute(
+        sa.text("SELECT DISTINCT report_group FROM categories WHERE report_group IS NOT NULL")
+    ).fetchall()
+
+    group_ids: dict[str, int] = {}
+    for (old_key,) in rows:
+        name, section, sort_order = _GROUP_DEFS.get(old_key, (old_key, "other", 100))
+        if name not in group_ids:
+            result = conn.execute(
+                sa.text(
+                    "INSERT INTO report_groups (name, section, sort_order, is_active) "
+                    "VALUES (:name, :section, :sort_order, 1)"
+                ),
+                {"name": name, "section": section, "sort_order": sort_order},
+            )
+            group_ids[name] = result.lastrowid
+
+    op.add_column(
+        'categories',
+        sa.Column('report_group_id', sa.Integer(), nullable=True),
+    )
+    for old_key, name in group_ids.items():
+        conn.execute(
+            sa.text(
+                "UPDATE categories SET report_group_id = :gid WHERE report_group = :key"
+            ),
+            {"gid": group_ids[name], "key": old_key},
+        )
+
+    op.create_foreign_key(
+        'fk_categories_report_group_id',
+        'categories',
+        'report_groups',
+        ['report_group_id'],
+        ['id'],
+    )
+    op.drop_column('categories', 'report_group')
+
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    op.add_column(
+        'categories',
+        sa.Column('report_group', sa.String(length=50), nullable=True),
+    )
+    conn = op.get_bind()
+    rows = conn.execute(
+        sa.text(
+            "SELECT rg.id, rg.name FROM report_groups rg"
+        )
+    ).fetchall()
+    for gid, name in rows:
+        conn.execute(
+            sa.text("UPDATE categories SET report_group = :name WHERE report_group_id = :gid"),
+            {"name": name, "gid": gid},
+        )
+    op.drop_constraint('fk_categories_report_group_id', 'categories', type_='foreignkey')
+    op.drop_column('categories', 'report_group_id')
+    op.drop_table('report_groups')
+
+
+# alembic\versions\b7c8d9e0f1a2_add_investments_table.py
+"""add investments table
+
+Revision ID: b7c8d9e0f1a2
+Revises: a1b2c3d4e5f6
+Create Date: 2026-08-27 12:00:00.000000
+"""
+from typing import Sequence, Union
+
+from alembic import op
+import sqlalchemy as sa
+
+
+revision: str = "b7c8d9e0f1a2"
+down_revision: Union[str, Sequence[str], None] = "a1b2c3d4e5f6"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        "investments",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("date", sa.Date(), nullable=False),
+        sa.Column("amount", sa.Numeric(12, 2), nullable=False),
+        sa.Column("comment", sa.Text(), nullable=True),
+        sa.PrimaryKeyConstraint("id"),
+        if_not_exists=True,
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("investments", if_exists=True)
+
+
 # app\config.py
 """Настройки приложения, читаются из .env и переменных окружения."""
 from functools import lru_cache
@@ -887,6 +1124,7 @@ class Settings(BaseSettings):
     BACKUP_DIR: str = "backups"
     BACKUP_KEEP: int = 7
     BACKUP_SCHEDULE: str = "0 3 * * *"
+    TIMEZONE: str = "Europe/Moscow"
 
 
 @lru_cache
@@ -994,7 +1232,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from app.database import Base
-from app.routers import auth, backups, categories, employees, health, operations, products, stats, suppliers, sync
+from app.routers import auth, backups, categories, employees, health, investments, operations, products, report_groups, stats, suppliers, sync
 from app.seed import seed_db
 from app.services import scheduler as scheduler_module
 
@@ -1050,7 +1288,9 @@ templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(operations.router)
+app.include_router(investments.router)
 app.include_router(categories.router)
+app.include_router(report_groups.router)
 app.include_router(suppliers.router)
 app.include_router(products.router)
 app.include_router(employees.router)
@@ -1082,7 +1322,7 @@ async def root() -> RedirectResponse:
 
 # app\models.py
 """Модели данных SQLAlchemy 2.0 (typed mapped)."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -1090,6 +1330,23 @@ from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, Numer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+class ReportGroup(Base):
+    """Группа отчёта P&L (например, «Прямой расход», «Накладные расходы»).
+
+    Порядок вывода в отчёте задаётся полем sort_order.
+    """
+
+    __tablename__ = "report_groups"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    section: Mapped[str] = mapped_column(String(20), default="direct")  # revenue/direct/overhead/taxes/other
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    categories: Mapped[list["Category"]] = relationship(back_populates="report_group_ref")
 
 
 class Category(Base):
@@ -1110,12 +1367,15 @@ class Category(Base):
     requires_employee: Mapped[bool] = mapped_column(Boolean, default=False)
     requires_responsible: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    # Группа для отчёта P&L (например, revenue_lavka, direct_wages, overhead_delivery)
-    report_group: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    # Группа для отчёта P&L (ссылка на report_groups.id)
+    report_group_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("report_groups.id"), nullable=True
+    )
 
     parent: Mapped[Optional["Category"]] = relationship(remote_side=[id], back_populates="children")
     children: Mapped[list["Category"]] = relationship(back_populates="parent", order_by="Category.id")
     operations: Mapped[list["Operation"]] = relationship(back_populates="category")
+    report_group_ref: Mapped[Optional["ReportGroup"]] = relationship(back_populates="categories")
 
 
 class Supplier(Base):
@@ -1195,6 +1455,17 @@ class Operation(Base):
     )
 
 
+class Investment(Base):
+    """Инвестиционное вложение, отображаемое отдельной строкой P&L."""
+
+    __tablename__ = "investments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[date] = mapped_column(Date)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
 class OperationItem(Base):
     """Строка продуктов внутри операции (мульти-ввод)."""
 
@@ -1258,7 +1529,7 @@ class CategoryBase(BaseModel):
     requires_employee: bool = False
     requires_responsible: bool = False
     is_active: bool = True
-    report_group: str | None = None
+    report_group_id: int | None = None
 
 
 class CategoryCreate(CategoryBase):
@@ -1270,6 +1541,23 @@ class CategoryRead(CategoryBase):
 
     id: int
     children: list["CategoryRead"] = []
+
+
+class ReportGroupBase(BaseModel):
+    name: str
+    section: str = "direct"
+    sort_order: int = 100
+    is_active: bool = True
+
+
+class ReportGroupCreate(ReportGroupBase):
+    pass
+
+
+class ReportGroupRead(ReportGroupBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
 
 
 class SupplierBase(BaseModel):
@@ -1431,18 +1719,36 @@ class SyncLogRead(BaseModel):
 
 
 # app\seed.py
-"""Идемпотентное заполнение справочников категорий и сотрудников."""
+"""Идемпотентное заполнение справочников: группы отчёта, категории, сотрудники."""
 from sqlalchemy.orm import Session
 
-from app.models import Category, Employee
+from app.models import Category, Employee, ReportGroup
 
+
+# Простые группы отчёта P&L. Порядок = порядок в выгрузке.
+REPORT_GROUPS_SEED: list[tuple[str, str, int]] = [
+    ("Доход", "revenue", 10),
+    ("Прямой расход", "direct", 20),
+    ("Накладные расходы", "overhead", 30),
+    ("Налоги и сборы", "taxes", 40),
+]
+
+
+def _get_or_create_report_group(session: Session, name: str, section: str, sort_order: int) -> ReportGroup:
+    group = session.query(ReportGroup).filter_by(name=name).first()
+    if group:
+        return group
+    group = ReportGroup(name=name, section=section, sort_order=sort_order)
+    session.add(group)
+    session.flush()
+    return group
 
 def _get_or_create_category(
     session: Session,
     name: str,
     kind: str,
     parent: Category | None = None,
-    report_group: str | None = None,
+    report_group: ReportGroup | None = None,
     requires_payment_method: bool = False,
     requires_guests: bool = False,
     requires_supplier: bool = False,
@@ -1459,15 +1765,15 @@ def _get_or_create_category(
     category = query.first()
     if category:
         # Обновляем маппинг отчёта при изменении справочника
-        if report_group is not None and category.report_group != report_group:
-            category.report_group = report_group
+        if report_group is not None and category.report_group_id != report_group.id:
+            category.report_group_id = report_group.id
         return category
 
     category = Category(
         name=name,
         kind=kind,
         parent_id=parent.id if parent else None,
-        report_group=report_group,
+        report_group_id=report_group.id if report_group else None,
         requires_payment_method=requires_payment_method,
         requires_guests=requires_guests,
         requires_supplier=requires_supplier,
@@ -1491,16 +1797,21 @@ def _get_or_create_employee(session: Session, name: str) -> Employee:
 
 
 def seed_db(session: Session) -> None:
-    """Создаёт категории и сотрудников, если их ещё нет."""
+    """Создаёт группы отчёта, категории и сотрудников, если их ещё нет."""
+    groups = {
+        name: _get_or_create_report_group(session, name, section, sort_order)
+        for name, section, sort_order in REPORT_GROUPS_SEED
+    }
+    income = groups["Доход"]
+    direct = groups["Прямой расход"]
+    overhead = groups["Накладные расходы"]
+    taxes = groups["Налоги и сборы"]
+
     # Доходы
     income_categories = [
-        ("Лавка", {"report_group": "revenue_lavka", "requires_guests": True}),
-        ("Ужины/Обеды", {"report_group": "revenue_catering", "requires_guests": True}),
-        ("Выездные мероприятия", {"report_group": "revenue_catering", "requires_guests": True}),
-        ("Открытые события", {"report_group": "revenue_catering", "requires_guests": True}),
-        ("Доставка продуктов", {"report_group": "revenue_catering", "requires_guests": True}),
-        ("Комиссия", {"report_group": "revenue_commission", "requires_guests": True}),
-        ("Аренда", {"report_group": "revenue_rent", "requires_guests": False}),
+        ("Лавка", {"requires_guests": True}),
+        ("Кейтеринг", {"requires_guests": True}),
+        ("Открытые события", {"requires_guests": True}),
     ]
 
     for name, flags in income_categories:
@@ -1508,16 +1819,39 @@ def seed_db(session: Session) -> None:
             session,
             name=name,
             kind="income",
+            report_group=income,
             requires_payment_method=True,
             **flags,
         )
 
-    # Дочерние категории доходов (аренда)
+    # Расходы
+    expense_categories = [
+        ("Аренда", {"requires_guests": False}),
+        ("Оборудование", {"requires_guests": False}),
+        ("Площадка", {"requires_guests": False}),
+        ("Посуда", {"requires_guests": False}),
+        ("Выездные мероприятия", {"requires_guests": True}),
+        ("Доставка продуктов", {"requires_guests": True}),
+        ("Комиссия", {"requires_guests": True}),
+        ("Открытые события", {"requires_guests": True}),
+        ("Ужины/Обеды", {"requires_guests": True}),
+    ]
+    for name, flags in expense_categories:
+        _get_or_create_category(
+            session,
+            name=name,
+            kind="expense",
+            report_group=overhead,
+            requires_payment_method=True,
+            **flags,
+        )
+
+    # Дочерние категории расходов (аренда)
     arenda = _get_or_create_category(
         session,
         name="Аренда",
-        kind="income",
-        report_group="revenue_rent",
+        kind="expense",
+        report_group=overhead,
         requires_payment_method=True,
         requires_guests=False,
     )
@@ -1525,9 +1859,9 @@ def seed_db(session: Session) -> None:
         _get_or_create_category(
             session,
             name=child_name,
-            kind="income",
+            kind="expense",
             parent=arenda,
-            report_group="revenue_rent",
+            report_group=overhead,
             requires_payment_method=True,
             requires_guests=False,
         )
@@ -1537,7 +1871,7 @@ def seed_db(session: Session) -> None:
         session,
         name="Закупка продуктов",
         kind="expense",
-        report_group="direct_products",
+        report_group=direct,
         requires_supplier=True,
         requires_products=True,
     )
@@ -1554,49 +1888,50 @@ def seed_db(session: Session) -> None:
             name=child_name,
             kind="expense",
             parent=zakupka,
-            report_group="direct_products",
+            report_group=direct,
             requires_supplier=True,
             requires_products=True,
         )
 
     # Остальные прямые расходы
     direct_expenses = [
-        ("Себестоимость кейтеринга", {"report_group": "direct_catering_cost"}),
-        ("Корм для животных", {"report_group": "direct_animal_feed"}),
-        ("Бензин", {"report_group": "direct_gas"}),
-        ("Служебное питание", {"report_group": "direct_meals"}),
-        ("Зарплата сотрудникам", {"report_group": "direct_wages", "requires_employee": True}),
-        ("Опреционные расходы", {"report_group": "direct_operational"}),
-        ("Прочие прямые расходы", {"report_group": "direct_other"}),
+        ("Себестоимость кейтеринга", {}),
+        ("Корм для животных", {}),
+        ("Бензин", {}),
+        ("Служебное питание", {}),
+        ("Зарплата сотрудникам", {"requires_employee": True}),
+        ("Опреционные расходы", {}),
+        ("Прочие прямые расходы", {}),
     ]
     for name, flags in direct_expenses:
         _get_or_create_category(
             session,
             name=name,
             kind="expense",
+            report_group=direct,
             **flags,
         )
 
     # Накладные расходы
     overhead_expenses = [
-        ("Эквайринг", {"report_group": "overhead_equaring"}),
-        ("Доставка и логистика", {"report_group": "overhead_delivery"}),
-        ("WiFi", {"report_group": "overhead_wifi"}),
-        ("Комиссия банка", {"report_group": "overhead_bank"}),
-        ("ИТ", {"report_group": "overhead_it"}),
-        ("Коммунальные платежи", {"report_group": "overhead_electricity"}),
-        ("Финансы", {"report_group": "overhead_finance"}),
-        ("Маркетинг", {"report_group": "overhead_marketing"}),
-        ("Оборудование и инвентарь", {"report_group": "overhead_equipment"}),
-        ("Аренда помещения", {"report_group": "overhead_rent"}),
-        ("Прочие накладные расходы", {"report_group": "overhead_other"}),
+        "Эквайринг",
+        "Доставка и логистика",
+        "WiFi",
+        "Комиссия банка",
+        "ИТ",
+        "Коммунальные платежи",
+        "Финансы",
+        "Маркетинг",
+        "Оборудование и инвентарь",
+        "Аренда помещения",
+        "Прочие накладные расходы",
     ]
-    for name, flags in overhead_expenses:
+    for name in overhead_expenses:
         _get_or_create_category(
             session,
             name=name,
             kind="expense",
-            **flags,
+            report_group=overhead,
         )
 
     # Списания
@@ -1604,14 +1939,14 @@ def seed_db(session: Session) -> None:
         session,
         name="Списания",
         kind="expense",
-        report_group="direct_other",
+        report_group=direct,
     )
     _get_or_create_category(
         session,
         name="Съели сами",
         kind="expense",
         parent=spisaniya,
-        report_group="direct_other",
+        report_group=direct,
         requires_responsible=True,
     )
     _get_or_create_category(
@@ -1619,7 +1954,7 @@ def seed_db(session: Session) -> None:
         name="Порча/просрочка",
         kind="expense",
         parent=spisaniya,
-        report_group="direct_other",
+        report_group=direct,
     )
 
     # Налоги
@@ -1627,7 +1962,7 @@ def seed_db(session: Session) -> None:
         session,
         name="Налоги и сборы",
         kind="expense",
-        report_group="taxes",
+        report_group=taxes,
     )
 
     # Сотрудники
@@ -1635,6 +1970,114 @@ def seed_db(session: Session) -> None:
         _get_or_create_employee(session, name)
 
     session.commit()
+
+
+# app\seed_fake_operations.py
+"""Добавляет фейковые операции с августа по ноябрь 2026 для демонстрации отчёта."""
+from datetime import date
+from decimal import Decimal
+
+from sqlalchemy.orm import Session
+
+from app.models import Category, Operation
+
+
+def seed_fake_operations(db: Session) -> None:
+    # Получаем категории для операций
+    categories = {c.name: c for c in db.query(Category).all()}
+
+    # Фейковые доходы (август — ноябрь 2026)
+    income_data = [
+        ("Лавка", "2026-08-05", Decimal("12500"), "Доходы лавки"),
+        ("Лавка", "2026-08-12", Decimal("9800"), "Доходы лавки"),
+        ("Лавка", "2026-09-03", Decimal("14200"), "Доходы лавки"),
+        ("Лавка", "2026-09-20", Decimal("11000"), "Доходы лавки"),
+        ("Лавка", "2026-10-08", Decimal("15800"), "Доходы лавки"),
+        ("Лавка", "2026-10-25", Decimal("13200"), "Доходы лавки"),
+        ("Лавка", "2026-11-05", Decimal("17500"), "Доходы лавки"),
+        ("Лавка", "2026-11-18", Decimal("14900"), "Доходы лавки"),
+        ("Ужины/Обеды", "2026-08-15", Decimal("8500"), "Ужин на 12 человек"),
+        ("Ужины/Обеды", "2026-09-10", Decimal("9200"), "Ужин на 15 человек"),
+        ("Ужины/Обеды", "2026-10-05", Decimal("10100"), "Ужин на 18 человек"),
+        ("Ужины/Обеды", "2026-11-12", Decimal("11300"), "Ужин на 20 человек"),
+        ("Выездные мероприятия", "2026-08-22", Decimal("45000"), "Мероприятие в парке"),
+        ("Выездные мероприятия", "2026-09-28", Decimal("52000"), "Мероприятие на даче"),
+        ("Выездные мероприятия", "2026-10-30", Decimal("48000"), "Мероприятие в зале"),
+        ("Открытые события", "2026-08-30", Decimal("22000"), "Открытое событие"),
+        ("Открытые события", "2026-09-15", Decimal("19500"), "Открытое событие"),
+        ("Открытые события", "2026-10-20", Decimal("24000"), "Открытое событие"),
+        ("Открытые события", "2026-11-08", Decimal("21000"), "Открытое событие"),
+        ("Доставка продуктов", "2026-08-08", Decimal("3200"), "Доставка"),
+        ("Доставка продуктов", "2026-09-05", Decimal("4100"), "Доставка"),
+        ("Доставка продуктов", "2026-10-12", Decimal("3800"), "Доставка"),
+        ("Доставка продуктов", "2026-11-03", Decimal("4500"), "Доставка"),
+        ("Комиссия", "2026-08-01", Decimal("1500"), "Комиссия"),
+        ("Комиссия", "2026-09-01", Decimal("1800"), "Комиссия"),
+        ("Комиссия", "2026-10-01", Decimal("2100"), "Комиссия"),
+        ("Комиссия", "2026-11-01", Decimal("1950"), "Комиссия"),
+        ("Аренда", "2026-08-01", Decimal("25000"), "Аренда зала"),
+        ("Аренда", "2026-09-01", Decimal("25000"), "Аренда зала"),
+        ("Аренда", "2026-10-01", Decimal("25000"), "Аренда зала"),
+        ("Аренда", "2026-11-01", Decimal("25000"), "Аренда зала"),
+    ]
+
+    # Фейковые расходы (август — ноябрь 2026)
+    expense_data = [
+        ("Закупка продуктов", "2026-08-03", Decimal("18500"), "Закупка мяса и овощей"),
+        ("Закупка продуктов", "2026-08-17", Decimal("16200"), "Закупка бакалеи"),
+        ("Закупка продуктов", "2026-09-02", Decimal("19800"), "Закупка молочных"),
+        ("Закупка продуктов", "2026-09-18", Decimal("17500"), "Закупка напитков"),
+        ("Закупка продуктов", "2026-10-04", Decimal("21000"), "Закупка мяса"),
+        ("Закупка продуктов", "2026-10-22", Decimal("19200"), "Закупка овощей"),
+        ("Закупка продуктов", "2026-11-06", Decimal("20500"), "Закупка хозтоваров"),
+        ("Закупка продуктов", "2026-11-20", Decimal("17800"), "Закупка напитков"),
+        ("Себестоимость кейтеринга", "2026-08-10", Decimal("8500"), "Кейтеринг"),
+        ("Себестоимость кейтеринга", "2026-09-14", Decimal("9200"), "Кейтеринг"),
+        ("Себестоимость кейтеринга", "2026-10-18", Decimal("10100"), "Кейтеринг"),
+        ("Себестоимость кейтеринга", "2026-11-10", Decimal("8900"), "Кейтеринг"),
+        ("Бензин", "2026-08-07", Decimal("3200"), "Бензин"),
+        ("Бензин", "2026-09-09", Decimal("3500"), "Бензин"),
+        ("Бензин", "2026-10-11", Decimal("3100"), "Бензин"),
+        ("Бензин", "2026-11-09", Decimal("3400"), "Бензин"),
+        ("Зарплата сотрудникам", "2026-08-25", Decimal("85000"), "Зарплата"),
+        ("Зарплата сотрудникам", "2026-09-25", Decimal("85000"), "Зарплата"),
+        ("Зарплата сотрудникам", "2026-10-25", Decimal("85000"), "Зарплата"),
+        ("Зарплата сотрудникам", "2026-11-25", Decimal("85000"), "Зарплата"),
+        ("Эквайринг", "2026-08-01", Decimal("1200"), "Эквайринг"),
+        ("Эквайринг", "2026-09-01", Decimal("1350"), "Эквайринг"),
+        ("Эквайринг", "2026-10-01", Decimal("1100"), "Эквайринг"),
+        ("Эквайринг", "2026-11-01", Decimal("1280"), "Эквайринг"),
+        ("Доставка и логистика", "2026-08-14", Decimal("2800"), "Доставка"),
+        ("Доставка и логистика", "2026-09-16", Decimal("3100"), "Доставка"),
+        ("Доставка и логистика", "2026-10-14", Decimal("2950"), "Доставка"),
+        ("Доставка и логистика", "2026-11-16", Decimal("3300"), "Доставка"),
+    ]
+
+    for name, date_str, amount, comment in income_data:
+        cat = categories.get(name)
+        if cat:
+            db.add(Operation(
+                date=date.fromisoformat(date_str),
+                kind="income",
+                category_id=cat.id,
+                amount=amount,
+                comment=comment,
+                payment_method="cash",
+            ))
+
+    for name, date_str, amount, comment in expense_data:
+        cat = categories.get(name)
+        if cat:
+            db.add(Operation(
+                date=date.fromisoformat(date_str),
+                kind="expense",
+                category_id=cat.id,
+                amount=amount,
+                comment=comment,
+                supplier_id=None,
+            ))
+
+    db.commit()
 
 
 # app\__init__.py
@@ -1756,11 +2199,27 @@ from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import Category, ChangeLog
+from app.models import Category, ChangeLog, ReportGroup
 from app.schemas import CategoryCreate, CategoryRead
+from app.services.report import report_group_label, report_group_option_label
 
 router = APIRouter(tags=["categories"], dependencies=[Depends(require_auth)])
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["report_group_label"] = report_group_label
+templates.env.globals["report_group_option_label"] = report_group_option_label
+
+
+def _report_groups(db: Session) -> list[ReportGroup]:
+    groups = db.query(ReportGroup).order_by(ReportGroup.sort_order, ReportGroup.id).all()
+    seen: set[tuple[str, str]] = set()
+    unique: list[ReportGroup] = []
+    for group in groups:
+        key = (group.name.strip().lower(), group.section.strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(group)
+    return unique
 
 
 def _log_change(
@@ -1792,6 +2251,7 @@ def _build_category_tree(categories: list[Category]) -> list[Category]:
 
 
 def _category_to_dict(category: Category) -> dict:
+    group_name = category.report_group_ref.name if category.report_group_ref else None
     return {
         "id": category.id,
         "name": category.name,
@@ -1804,7 +2264,8 @@ def _category_to_dict(category: Category) -> dict:
         "requires_employee": category.requires_employee,
         "requires_responsible": category.requires_responsible,
         "is_active": category.is_active,
-        "report_group": category.report_group,
+        "report_group_id": category.report_group_id,
+        "report_group_name": group_name,
         "children": [],
     }
 
@@ -1830,7 +2291,11 @@ async def categories_list(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "categories/list.html",
-        {"categories": tree, "all_categories": all_categories},
+        {
+            "categories": tree,
+            "all_categories": all_categories,
+            "report_groups": _report_groups(db),
+        },
     )
 
 
@@ -1847,7 +2312,7 @@ async def category_create(
     requires_products: bool = Form(False),
     requires_employee: bool = Form(False),
     requires_responsible: bool = Form(False),
-    report_group: str | None = Form(None),
+    report_group_id: int | None = Form(None),
 ):
     category = Category(
         name=name,
@@ -1859,7 +2324,7 @@ async def category_create(
         requires_products=requires_products,
         requires_employee=requires_employee,
         requires_responsible=requires_responsible,
-        report_group=report_group or None,
+        report_group_id=report_group_id or None,
     )
     db.add(category)
     db.flush()
@@ -1883,7 +2348,7 @@ async def category_update(
     requires_employee: bool = Form(False),
     requires_responsible: bool = Form(False),
     is_active: bool = Form(True),
-    report_group: str | None = Form(None),
+    report_group_id: int | None = Form(None),
 ):
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
@@ -1902,7 +2367,7 @@ async def category_update(
     category.requires_employee = requires_employee
     category.requires_responsible = requires_responsible
     category.is_active = is_active
-    category.report_group = report_group or None
+    category.report_group_id = report_group_id or None
 
     db.flush()
     new_values = {c: getattr(category, c) for c in columns}
@@ -1951,6 +2416,17 @@ async def api_categories_create(data: CategoryCreate, db: Session = Depends(get_
     db.commit()
     db.refresh(category)
     return category
+
+
+@router.get("/api/categories/by-group/{group_id}")
+async def api_categories_by_group(group_id: int, db: Session = Depends(get_db)):
+    categories = (
+        db.query(Category)
+        .filter(Category.report_group_id == group_id)
+        .order_by(Category.kind, Category.name)
+        .all()
+    )
+    return _build_category_tree_dict(categories)
 
 
 # app\routers\employees.py
@@ -2097,6 +2573,63 @@ async def health():
         )
 
 
+# app\routers\investments.py
+"""HTML-CRUD инвестиций."""
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.deps import get_db, require_auth
+from app.models import Investment
+
+router = APIRouter(tags=["investments"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/investments")
+async def investments_list(request: Request, db: Session = Depends(get_db)):
+    investments = db.query(Investment).order_by(Investment.date.desc(), Investment.id.desc()).all()
+    total = sum((investment.amount for investment in investments), start=0)
+    return templates.TemplateResponse(
+        request,
+        "investments/list.html",
+        {"investments": investments, "total": total},
+    )
+
+
+@router.post("/investments")
+async def investment_create(
+    investment_date: date = Form(...),
+    amount: str = Form(...),
+    comment: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    try:
+        investment_amount = Decimal(amount.replace(",", ".").replace(" ", ""))
+    except InvalidOperation as exc:
+        raise HTTPException(status_code=400, detail="Сумма должна быть числом") from exc
+    if investment_amount <= 0:
+        raise HTTPException(status_code=400, detail="Сумма должна быть больше нуля")
+
+    db.add(Investment(date=investment_date, amount=investment_amount, comment=comment or None))
+    db.commit()
+    return RedirectResponse(url="/investments", status_code=302)
+
+
+@router.post("/investments/{investment_id}/delete")
+async def investment_delete(investment_id: int, db: Session = Depends(get_db)):
+    investment = db.query(Investment).filter(Investment.id == investment_id).first()
+    if not investment:
+        raise HTTPException(status_code=404, detail="Инвестиция не найдена")
+    db.delete(investment)
+    db.commit()
+    return RedirectResponse(url="/investments", status_code=302)
+
+
 # app\routers\operations.py
 """Операции доходов/расходов: HTML-CRUD и JSON API."""
 import re
@@ -2110,7 +2643,7 @@ from sqlalchemy.orm import Session, joinedload
 from starlette.templating import Jinja2Templates
 
 from app.deps import get_db, require_auth
-from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Supplier
+from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Product, Supplier
 from app.schemas import OperationCreate, OperationRead
 
 
@@ -2144,7 +2677,7 @@ def _log_change(
     )
 
 
-def _parse_items_from_form(form) -> list[OperationItem]:
+def _parse_items_from_form(form, db: Session | None = None) -> list[OperationItem]:
     """Разбирает динамические поля items[i][field] из form-data."""
     raw: dict[int, dict[str, str]] = defaultdict(dict)
     for key, value in form.multi_items():
@@ -2157,13 +2690,35 @@ def _parse_items_from_form(form) -> list[OperationItem]:
     items: list[OperationItem] = []
     for idx in sorted(raw.keys()):
         data = raw[idx]
+        product_id_raw = data.get("product_id")
         name = (data.get("name") or "").strip()
-        if not name:
+        is_custom = product_id_raw == "custom"
+        has_product_id = product_id_raw is not None and str(product_id_raw).strip() != "" and not is_custom
+        if not name and is_custom:
             continue
-        product_id = data.get("product_id")
+        product_id = None
+        if product_id_raw == "custom":
+            if db:
+                product = Product(name=name, unit=data.get("unit") or "шт", is_active=True)
+                db.add(product)
+                db.flush()
+                product_id = product.id
+            else:
+                product_id = None
+        else:
+            try:
+                product_id = int(product_id_raw) if product_id_raw else None
+            except ValueError:
+                product_id = None
+            if product_id and not name and db:
+                product = db.query(Product).filter(Product.id == product_id).first()
+                if product:
+                    name = product.name
+        if not product_id and not name:
+            continue
         items.append(
             OperationItem(
-                product_id=int(product_id) if product_id else None,
+                product_id=product_id,
                 name=name,
                 price=Decimal(data.get("price") or "0"),
                 quantity=Decimal(data.get("quantity") or "1"),
@@ -2209,22 +2764,23 @@ def _validate_operation_form(
 async def operations_list(
     request: Request,
     db: Session = Depends(get_db),
-    kind: str | None = Query(None),
-    category_id: int | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
+    kind: str | None = Query(None, description="Optional"),
+    category_id: str | None = Query(None, description="Optional"),
+    date_from: str | None = Query(None, description="Optional"),
+    date_to: str | None = Query(None, description="Optional"),
 ):
     query = db.query(Operation).options(
-        joinedload(Operation.category).joinedload(Category.parent)
+        joinedload(Operation.category).joinedload(Category.parent),
+        joinedload(Operation.items).joinedload(OperationItem.product),
     )
     if kind:
         query = query.filter(Operation.kind == kind)
-    if category_id:
-        query = query.filter(Operation.category_id == category_id)
-    if date_from:
-        query = query.filter(Operation.date >= date_from)
-    if date_to:
-        query = query.filter(Operation.date <= date_to)
+    if category_id and str(category_id).strip() not in ("", "None"):
+        query = query.filter(Operation.category_id == int(category_id))
+    if date_from and str(date_from).strip() not in ("", "None"):
+        query = query.filter(Operation.date >= date.fromisoformat(date_from))
+    if date_to and str(date_to).strip() not in ("", "None"):
+        query = query.filter(Operation.date <= date.fromisoformat(date_to))
 
     operations = query.order_by(Operation.date.desc(), Operation.id.desc()).all()
     categories = db.query(Category).order_by(Category.kind, Category.name).all()
@@ -2340,7 +2896,7 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
     employee_id = int(data["employee_id"]) if data.get("employee_id") else None
     responsible = data.get("responsible") or None
 
-    items = _parse_items_from_form(form)
+    items = _parse_items_from_form(form, db)
     _validate_operation_form(
         category=category,
         kind=kind,
@@ -2390,7 +2946,7 @@ async def operation_update(
 ):
     operation = (
         db.query(Operation)
-        .options(joinedload(Operation.items))
+        .options(joinedload(Operation.items).joinedload(OperationItem.product))
         .filter(Operation.id == operation_id)
         .first()
     )
@@ -2412,7 +2968,7 @@ async def operation_update(
     employee_id = int(data["employee_id"]) if data.get("employee_id") else None
     responsible = data.get("responsible") or None
 
-    items = _parse_items_from_form(form)
+    items = _parse_items_from_form(form, db)
     _validate_operation_form(
         category=category,
         kind=kind,
@@ -2488,10 +3044,10 @@ async def operation_delete(operation_id: int, db: Session = Depends(get_db)):
 @router.get("/api/operations", response_model=list[OperationRead])
 async def api_operations_list(
     db: Session = Depends(get_db),
-    kind: str | None = Query(None),
-    category_id: int | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
+    kind: str | None = Query(None, description="Optional"),
+    category_id: str | None = Query(None, description="Optional"),
+    date_from: str | None = Query(None, description="Optional"),
+    date_to: str | None = Query(None, description="Optional"),
 ):
     query = db.query(Operation).options(
         joinedload(Operation.category),
@@ -2501,12 +3057,12 @@ async def api_operations_list(
     )
     if kind:
         query = query.filter(Operation.kind == kind)
-    if category_id:
-        query = query.filter(Operation.category_id == category_id)
-    if date_from:
-        query = query.filter(Operation.date >= date_from)
-    if date_to:
-        query = query.filter(Operation.date <= date_to)
+    if category_id and str(category_id).strip() not in ("", "None"):
+        query = query.filter(Operation.category_id == int(category_id))
+    if date_from and str(date_from).strip() not in ("", "None"):
+        query = query.filter(Operation.date >= date.fromisoformat(date_from))
+    if date_to and str(date_to).strip() not in ("", "None"):
+        query = query.filter(Operation.date <= date.fromisoformat(date_to))
     return query.order_by(Operation.date.desc(), Operation.id.desc()).all()
 
 
@@ -2702,6 +3258,221 @@ async def api_product_prices(
     if product_id is not None:
         query = query.filter(ProductPrice.product_id == product_id)
     return query.all()
+
+
+# app\routers\report_groups.py
+"""Группы отчёта P&L: HTML-CRUD и JSON API."""
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from starlette.templating import Jinja2Templates
+
+from app.services.report import SECTION_LABELS
+
+from app.deps import get_db, require_auth
+from app.models import Category, ChangeLog, ReportGroup
+from app.schemas import ReportGroupCreate, ReportGroupRead
+
+router = APIRouter(tags=["report-groups"], dependencies=[Depends(require_auth)])
+templates = Jinja2Templates(directory="app/templates")
+
+
+
+def _group_identity(name: str, section: str) -> tuple[str, str]:
+    return (name.strip(), section.strip())
+
+
+def _unique_report_groups(groups: list[ReportGroup]) -> list[ReportGroup]:
+    seen: set[tuple[str, str]] = set()
+    unique: list[ReportGroup] = []
+    for group in groups:
+        identity = _group_identity(group.name, group.section)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(group)
+    return unique
+
+
+def _log_change(
+    db: Session,
+    entity: str,
+    entity_id: int,
+    action: str,
+    changes: dict | None = None,
+) -> None:
+    db.add(
+        ChangeLog(
+            entity=entity,
+            entity_id=entity_id,
+            action=action,
+            changes=changes,
+        )
+    )
+
+
+@router.get("/report-groups")
+async def report_groups_page(request: Request, db: Session = Depends(get_db)):
+    groups = db.query(ReportGroup).order_by(ReportGroup.sort_order, ReportGroup.id).all()
+    counts: dict[int, int] = {}
+    for group in groups:
+        counts[group.id] = (
+            db.query(Category).filter(Category.report_group_id == group.id).count()
+        )
+    return templates.TemplateResponse(
+        request,
+        "report_groups/list.html",
+        {
+            "groups": groups,
+            "category_counts": counts,
+            "section_labels": SECTION_LABELS,
+        },
+    )
+
+
+@router.post("/report-groups")
+async def report_group_create(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    section: str = Form("direct"),
+    sort_order: int = Form(100),
+):
+    normalized_name = name.strip()
+    normalized_section = section.strip()
+    existing = (
+        db.query(ReportGroup)
+        .filter(ReportGroup.name == normalized_name, ReportGroup.section == normalized_section)
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Группа «{normalized_name}» для секции «{SECTION_LABELS.get(normalized_section, normalized_section)}» уже существует.",
+        )
+
+    group = ReportGroup(name=normalized_name, section=normalized_section, sort_order=sort_order)
+    db.add(group)
+    db.flush()
+    _log_change(db, "report_group", group.id, "create")
+    db.commit()
+    return RedirectResponse(url="/report-groups", status_code=302)
+
+
+@router.post("/report-groups/{group_id}")
+async def report_group_update(
+    request: Request,
+    group_id: int,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    section: str = Form("direct"),
+    sort_order: int = Form(100),
+    is_active: bool = Form(True),
+):
+    group = db.query(ReportGroup).filter(ReportGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    normalized_name = name.strip()
+    normalized_section = section.strip()
+    duplicate = (
+        db.query(ReportGroup)
+        .filter(
+            ReportGroup.id != group_id,
+            ReportGroup.name == normalized_name,
+            ReportGroup.section == normalized_section,
+        )
+        .first()
+    )
+    if duplicate:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Группа «{normalized_name}» для секции «{SECTION_LABELS.get(normalized_section, normalized_section)}» уже существует.",
+        )
+
+    columns = [c.name for c in ReportGroup.__table__.columns]
+    old_values = {c: getattr(group, c) for c in columns}
+
+    group.name = normalized_name
+    group.section = normalized_section
+    group.sort_order = sort_order
+    group.is_active = is_active
+
+    db.flush()
+    new_values = {c: getattr(group, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "report_group", group.id, "update", changes)
+    db.commit()
+    return RedirectResponse(url="/report-groups", status_code=302)
+
+
+@router.post("/report-groups/{group_id}/delete")
+async def report_group_delete(group_id: int, db: Session = Depends(get_db)):
+    group = db.query(ReportGroup).filter(ReportGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    linked = db.query(Category).filter(Category.report_group_id == group_id).count()
+    if linked:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Нельзя удалить группу «{group.name}»: к ней привязано {linked} категорий. Сначала отвяжите категории.",
+        )
+
+    db.delete(group)
+    _log_change(db, "report_group", group_id, "delete")
+    db.commit()
+    return RedirectResponse(url="/report-groups", status_code=302)
+
+
+@router.get("/api/report-groups", response_model=list[ReportGroupRead])
+async def api_report_groups_list(db: Session = Depends(get_db)):
+    groups = db.query(ReportGroup).order_by(ReportGroup.sort_order, ReportGroup.id).all()
+    return _unique_report_groups(groups)
+
+
+@router.post("/api/report-groups", response_model=ReportGroupRead)
+async def api_report_groups_create(data: ReportGroupCreate, db: Session = Depends(get_db)):
+    group = ReportGroup(**data.model_dump())
+    db.add(group)
+    db.flush()
+    _log_change(db, "report_group", group.id, "create")
+    db.commit()
+    db.refresh(group)
+    return group
+
+
+@router.post("/api/report-groups/{group_id}", response_model=ReportGroupRead)
+async def api_report_groups_update(
+    group_id: int,
+    data: ReportGroupCreate,
+    db: Session = Depends(get_db),
+):
+    group = db.query(ReportGroup).filter(ReportGroup.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    columns = [c.name for c in ReportGroup.__table__.columns]
+    old_values = {c: getattr(group, c) for c in columns}
+
+    for key, value in data.model_dump().items():
+        setattr(group, key, value)
+
+    db.flush()
+    new_values = {c: getattr(group, c) for c in columns}
+    changes = {
+        k: {"old": old_values[k], "new": new_values[k]}
+        for k in old_values
+        if old_values[k] != new_values[k]
+    }
+    _log_change(db, "report_group", group.id, "update", changes)
+    db.commit()
+    db.refresh(group)
+    return group
 
 
 # app\routers\stats.py
@@ -3103,11 +3874,17 @@ async def api_suppliers_create(data: SupplierCreate, db: Session = Depends(get_d
 
 # app\routers\sync.py
 """Роутер ручной синхронизации с Google Sheets."""
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from starlette.templating import Jinja2Templates
 
 from app.config import settings
+from app import database
 from app.deps import get_db, require_auth
 from app.models import SyncLog
 from app.schemas import SyncLogRead
@@ -3115,6 +3892,49 @@ from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
 
 router = APIRouter(tags=["sync"], dependencies=[Depends(require_auth)])
 templates = Jinja2Templates(directory="app/templates")
+sync_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sheets-sync")
+sync_state_lock = Lock()
+sync_state: dict[str, dict] = {}
+
+
+def _run_manual_sync(job_id: str) -> None:
+    db = database.SessionLocal()
+    try:
+        with sync_state_lock:
+            sync_state[job_id] = {"status": "running"}
+
+        result = sync_operations_to_sheets(db)
+        log_sync_attempt(
+            db,
+            success=True,
+            message="Синхронизация отчёта P&L с Google Таблицей завершена успешно",
+            details=result,
+            records_count=result.get("synced"),
+        )
+        state = {
+            "status": "success",
+            "synced": result["synced"],
+            "message": f"Синхронизировано {result['synced']} операций",
+        }
+    except Exception as exc:  # noqa: BLE001
+        message = str(exc)
+        try:
+            log_sync_attempt(db, success=False, message=message, details={"error": message})
+        except Exception:  # noqa: BLE001
+            pass
+        state = {"status": "error", "error": message}
+    finally:
+        db.close()
+        with sync_state_lock:
+            sync_state[job_id] = state
+
+
+def _active_job_id() -> str | None:
+    with sync_state_lock:
+        for job_id, state in reversed(list(sync_state.items())):
+            if state["status"] in {"queued", "running"}:
+                return job_id
+    return None
 
 
 def _last_logs(db: Session, limit: int = 20):
@@ -3142,38 +3962,35 @@ async def sync_page(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/sync/now")
 async def sync_now(db: Session = Depends(get_db)):
-    try:
-        result = sync_operations_to_sheets(db)
-        log_sync_attempt(
-            db,
-            success=True,
-            message="Синхронизация отчёта P&L с Google Таблицей завершена успешно",
-            details=result,
-            records_count=result.get("synced"),
-        )
-        return {
-            "success": True,
-            "synced": result["synced"],
-            "message": f"Синхронизировано {result['synced']} операций",
-        }
-    except ValueError as exc:
-        message = str(exc)
-        log_sync_attempt(
-            db,
-            success=False,
-            message=message,
-            details={"error": message},
-        )
+    if not settings.GOOGLE_SPREADSHEET_ID:
+        message = "GOOGLE_SPREADSHEET_ID не настроен"
+        log_sync_attempt(db, success=False, message=message, details={"error": message})
         return {"success": False, "error": message}
-    except Exception as exc:  # noqa: BLE001
-        message = str(exc)
-        log_sync_attempt(
-            db,
-            success=False,
-            message=message,
-            details={"error": message},
+
+    active_job_id = _active_job_id()
+    if active_job_id:
+        return JSONResponse(
+            status_code=409,
+            content={"success": False, "error": "Синхронизация уже выполняется", "job_id": active_job_id},
         )
-        return {"success": False, "error": message}
+
+    job_id = uuid4().hex
+    with sync_state_lock:
+        sync_state[job_id] = {"status": "queued"}
+    sync_executor.submit(_run_manual_sync, job_id)
+    return JSONResponse(
+        status_code=202,
+        content={"success": True, "status": "queued", "job_id": job_id},
+    )
+
+
+@router.get("/api/sync/status/{job_id}")
+async def api_sync_status(job_id: str):
+    with sync_state_lock:
+        state = sync_state.get(job_id)
+    if state is None:
+        return JSONResponse(status_code=404, content={"error": "Задача синхронизации не найдена"})
+    return {"success": state["status"] == "success", **state, "job_id": job_id}
 
 
 @router.get("/api/sync/logs", response_model=list[SyncLogRead])
@@ -3330,10 +4147,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Category, Employee, Operation
+from app.models import Category, Employee, Investment, Operation, ReportGroup
 
 MONTH_NAMES = [
     "январь",
@@ -3350,44 +4166,25 @@ MONTH_NAMES = [
     "декабрь",
 ]
 
-# Дружелюбный справочник групп учёта для отчёта P&L.
-# Ключ хранится в Category.report_group, label показывается пользователю.
-REPORT_GROUPS: list[dict[str, str]] = [
-    {"key": "", "label": "— не в отчёте —"},
-    {"key": "revenue_lavka", "label": "Доход: лавка"},
-    {"key": "revenue_catering", "label": "Доход: кейтеринг"},
-    {"key": "revenue_rent", "label": "Доход: аренда"},
-    {"key": "revenue_commission", "label": "Доход: комиссия"},
-    {"key": "direct_products", "label": "Прямой расход: продукты лавка"},
-    {"key": "direct_catering_cost", "label": "Прямой расход: себестоимость кейтеринга"},
-    {"key": "direct_animal_feed", "label": "Прямой расход: корм для животных"},
-    {"key": "direct_gas", "label": "Прямой расход: бензин"},
-    {"key": "direct_meals", "label": "Прямой расход: служебное питание"},
-    {"key": "direct_wages", "label": "Прямой расход: оплата труда"},
-    {"key": "direct_operational", "label": "Прямой расход: операционные"},
-    {"key": "direct_other", "label": "Прямой расход: иное"},
-    {"key": "overhead_equaring", "label": "Накладный расход: эквайринг"},
-    {"key": "overhead_delivery", "label": "Накладный расход: доставка"},
-    {"key": "overhead_wifi", "label": "Накладный расход: WiFi"},
-    {"key": "overhead_bank", "label": "Накладный расход: комиссия банка"},
-    {"key": "overhead_it", "label": "Накладный расход: ИТ"},
-    {"key": "overhead_electricity", "label": "Накладный расход: электричество / коммунальные"},
-    {"key": "overhead_finance", "label": "Накладный расход: финансы"},
-    {"key": "overhead_marketing", "label": "Накладный расход: маркетинг"},
-    {"key": "overhead_equipment", "label": "Накладный расход: оборудование и инвентарь"},
-    {"key": "overhead_rent", "label": "Накладный расход: аренда помещения"},
-    {"key": "overhead_other", "label": "Накладный расход: прочее"},
-    {"key": "taxes", "label": "Налоги и сборы"},
-    {"key": "investments", "label": "Инвестиции"},
-]
-
-REPORT_GROUP_BY_KEY = {item["key"]: item["label"] for item in REPORT_GROUPS}
+# Подписи секций отчёта (для итоговых строк)
+SECTION_LABELS = {
+    "revenue": "Выручка",
+    "direct": "Прямые расходы",
+    "overhead": "Накладные расходы",
+    "taxes": "Налоги и сборы",
+    "other": "Прочее",
+}
 
 
-def report_group_label(key: str | None) -> str:
-    if not key:
+def report_group_label(group: ReportGroup | None) -> str:
+    return group.name if group else "— не в отчёте —"
+
+
+def report_group_option_label(group: ReportGroup | None) -> str:
+    if not group:
         return "— не в отчёте —"
-    return REPORT_GROUP_BY_KEY.get(key, key)
+    section = SECTION_LABELS.get(group.section, group.section)
+    return f"{group.name} ({section})"
 
 
 @dataclass
@@ -3422,28 +4219,20 @@ def _month_label(year: int, month: int, years: set[int]) -> str:
     return label
 
 
-def _months_range(operations: list[Operation]) -> list[tuple[int, int, str]]:
+def _months_range(records: list[Operation | Investment]) -> list[tuple[int, int, str]]:
     """Возвращает список (year, month, label), отсортированный по хронологии."""
-    if not operations:
+    if not records:
         today = date.today()
         return [(today.year, today.month, _month_label(today.year, today.month, {today.year}))]
 
     months_set: set[tuple[int, int]] = set()
     years: set[int] = set()
-    for op in operations:
+    for op in records:
         months_set.add((op.date.year, op.date.month))
         years.add(op.date.year)
 
     sorted_months = sorted(months_set)
     return [(y, m, _month_label(y, m, years)) for y, m in sorted_months]
-
-
-def _match_group(report_group: str | None, pattern: str) -> bool:
-    if report_group is None:
-        return False
-    if pattern.endswith("*"):
-        return report_group.startswith(pattern[:-1])
-    return report_group == pattern
 
 
 def _collect_operations(db: Session) -> list[Operation]:
@@ -3456,20 +4245,41 @@ def _collect_operations(db: Session) -> list[Operation]:
     )
 
 
+def _collect_investments(db: Session) -> list[Investment]:
+    return db.query(Investment).order_by(Investment.date).all()
+
+
+def _aggregate_investments(
+    investments: list[Investment],
+    months: list[tuple[int, int, str]],
+) -> list[Decimal]:
+    month_index = {(year, month): index for index, (year, month, _) in enumerate(months)}
+    amounts = [Decimal("0") for _ in months]
+    for investment in investments:
+        index = month_index.get((investment.date.year, investment.date.month))
+        if index is not None:
+            amounts[index] += investment.amount
+    return amounts
+
+
 def _aggregate(
     operations: list[Operation],
     months: list[tuple[int, int, str]],
-) -> tuple[dict, dict, dict]:
+) -> tuple[list[Decimal], dict, dict, dict]:
     """Агрегирует суммы по месяцам, группам отчёта и сотрудникам."""
     month_index = {(y, m): i for i, (y, m, _) in enumerate(months)}
     n = len(months)
 
     # revenue[month_idx] = Decimal
     revenue: list[Decimal] = [Decimal("0") for _ in range(n)]
-    # by_group[report_group][month_idx] = Decimal
-    by_group: dict[str, list[Decimal]] = defaultdict(lambda: [Decimal("0") for _ in range(n)])
-    # by_employee[group][employee_name][month_idx] = Decimal
-    by_employee: dict[str, dict[str, list[Decimal]]] = defaultdict(
+    # by_group[group_id][month_idx] = Decimal
+    by_group: dict[int, list[Decimal]] = defaultdict(lambda: [Decimal("0") for _ in range(n)])
+    # by_employee[group_id][employee_name][month_idx] = Decimal
+    by_employee: dict[int, dict[str, list[Decimal]]] = defaultdict(
+        lambda: defaultdict(lambda: [Decimal("0") for _ in range(n)])
+    )
+    # by_group_category[group_id][category_name][month_idx] = Decimal
+    by_group_category: dict[int, dict[str, list[Decimal]]] = defaultdict(
         lambda: defaultdict(lambda: [Decimal("0") for _ in range(n)])
     )
 
@@ -3478,18 +4288,19 @@ def _aggregate(
         if idx is None:
             continue
 
-        group = op.category.report_group
+        group_id = op.category.report_group_id
         amount = op.amount
 
         if op.kind == "income":
             revenue[idx] += amount
 
-        if group:
-            by_group[group][idx] += amount
+        if group_id:
+            by_group[group_id][idx] += amount
+            by_group_category[group_id][op.category.name][idx] += amount
             if op.employee_id and op.employee:
-                by_employee[group][op.employee.name][idx] += amount
+                by_employee[group_id][op.employee.name][idx] += amount
 
-    return revenue, by_group, by_employee
+    return revenue, by_group, by_employee, by_group_category
 
 
 def _calc_row(
@@ -3511,158 +4322,233 @@ def _calc_row(
     return values
 
 
-def _amounts_for_groups(
+def _is_zero(amounts: list[Decimal]) -> bool:
+    return all(a == 0 for a in amounts)
+
+
+def _group_row(
+    group: ReportGroup,
     months: list[tuple[int, int, str]],
-    by_group: dict[str, list[Decimal]],
-    patterns: list[str],
-) -> list[Decimal]:
+    revenue: list[Decimal],
+    by_group: dict[int, list[Decimal]],
+    by_group_category: dict[int, dict[str, list[Decimal]]],
+    by_employee: dict[int, dict[str, list[Decimal]]],
+) -> ReportRow | None:
+    """Строка группы отчёта с категориями внутри.
+
+    Возвращает None, если по группе нет ни одной операции за период
+    (нулевые строки не попадают в Excel/Google Sheets).
+    """
     n = len(months)
-    amounts = [Decimal("0") for _ in range(n)]
-    for pattern in patterns:
-        for group, vals in by_group.items():
-            if _match_group(group, pattern):
-                for i in range(n):
-                    amounts[i] += vals[i]
-    return amounts
+    amounts = by_group.get(group.id, [Decimal("0") for _ in range(n)])
+    if _is_zero(amounts):
+        return None
+
+    row = ReportRow(
+        label=group.name,
+        section=group.section,
+        level=1,
+        values=_calc_row(months, revenue, amounts),
+    )
+
+    # Категории внутри группы отчёта — процент от суммы группы (не от выручки)
+    group_amounts = by_group.get(group.id, [Decimal("0") for _ in range(n)])
+    for cat_name in sorted(by_group_category.get(group.id, {}).keys()):
+        cat_amounts = by_group_category[group.id][cat_name]
+        if _is_zero(cat_amounts):
+            continue
+        # Процент подкатегории = сумма подкатегории / сумма группы
+        sub_pct = [
+            (cat_amounts[i] / group_amounts[i] * Decimal("100")) if group_amounts[i] else Decimal("0")
+            for i in range(n)
+        ]
+        sub_values = []
+        for i in range(n):
+            sub_values.append(RowValue(amount=cat_amounts[i], percent=sub_pct[i], raw=True))
+        row.subrows.append(
+            ReportRow(
+                label=f"· {cat_name}",
+                section=group.section,
+                level=2,
+                values=sub_values,
+            )
+        )
+
+    # Разбивка по сотрудникам (например, «Съели сами»)
+    for employee_name in sorted(by_employee.get(group.id, {}).keys()):
+        emp_amounts = by_employee[group.id][employee_name]
+        if _is_zero(emp_amounts):
+            continue
+        row.subrows.append(
+            ReportRow(
+                label=f"👤 {employee_name}",
+                section=group.section,
+                level=2,
+                values=_calc_row(months, revenue, emp_amounts),
+            )
+        )
+
+    return row
+
+
+def _blank_separator(section: str, n: int) -> ReportRow:
+    return ReportRow(
+        label="",
+        section=f"{section}_separator",
+        level=0,
+        values=[RowValue(amount=Decimal("0"), percent=Decimal("0"), raw=False) for _ in range(n)],
+    )
+
+
+def _section_total_row(
+    section: str,
+    label: str,
+    totals: list[Decimal],
+    months: list[tuple[int, int, str]],
+    revenue: list[Decimal],
+    background: str | None,
+) -> ReportRow:
+    return ReportRow(
+        label=label,
+        section=section,
+        level=0,
+        bold=True,
+        background=background,
+        values=_calc_row(months, revenue, totals),
+    )
+
+
+def _append_section(
+    rows: list[ReportRow],
+    section: str,
+    label: str,
+    section_rows: list[ReportRow],
+    totals: list[Decimal],
+    months: list[tuple[int, int, str]],
+    revenue: list[Decimal],
+    background: str | None,
+    n: int,
+) -> None:
+    if not _is_zero(totals):
+        header = _section_total_row(section, label, totals, months, revenue, background)
+        duplicate_rows = [row for row in section_rows if row.label == label]
+        for duplicate in duplicate_rows:
+            header.subrows.extend(duplicate.subrows)
+        rows.append(header)
+        rows.extend(row for row in section_rows if row.label != label)
+    rows.append(_blank_separator(section, n))
 
 
 def build_report(db: Session) -> ReportData:
-    """Строит отчёт P&L по месяцам."""
+    """Строит отчёт P&L по месяцам на основе групп отчёта из БД."""
     operations = _collect_operations(db)
-    months = _months_range(operations)
-    revenue, by_group, by_employee = _aggregate(operations, months)
+    investments = _collect_investments(db)
+    months = _months_range([*operations, *investments])
+    revenue, by_group, by_employee, by_group_category = _aggregate(operations, months)
+    investment_amounts = _aggregate_investments(investments, months)
     n = len(months)
+
+    groups = (
+        db.query(ReportGroup)
+        .order_by(ReportGroup.sort_order, ReportGroup.id)
+        .all()
+    )
 
     rows: list[ReportRow] = []
 
-    # Доходы
-    rows.append(
-        ReportRow(
-            label="Выручка всего",
-            section="revenue_total",
-            level=0,
-            bold=True,
-            background="yellow",
-            values=_calc_row(months, revenue, revenue),
-        )
+    # Итоги по секциям (для строк «... всего» и прибыли)
+    section_totals: dict[str, list[Decimal]] = defaultdict(
+        lambda: [Decimal("0") for _ in range(n)]
     )
+    rows_by_section: dict[str, list[ReportRow]] = defaultdict(list)
 
-    revenue_rows = [
-        ("Выручка лавка", "revenue_lavka"),
-        ("Выручка кейтеринг", "revenue_catering"),
-        ("Выручка аренда", "revenue_rent"),
-        ("Выручка комиссия", "revenue_commission"),
-    ]
-    for label, group in revenue_rows:
-        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
+    # Строки групп отчёта с категориями внутри; нулевые группы пропускаются
+    for group in groups:
+        row = _group_row(group, months, revenue, by_group, by_group_category, by_employee)
+        if row is None:
+            continue
+        rows_by_section[group.section].append(row)
+        totals = section_totals[group.section]
+        vals = by_group.get(group.id, [Decimal("0") for _ in range(n)])
+        for i in range(n):
+            totals[i] += vals[i]
+
+    # Выручка: заголовок секции + все группы дохода
+    if not _is_zero(revenue):
         rows.append(
-            ReportRow(
-                label=label,
-                section="revenue",
-                level=1,
-                values=_calc_row(months, revenue, amounts),
-            )
+            _section_total_row("revenue", "Выручка всего", revenue, months, revenue, "yellow")
         )
+        rows.extend(rows_by_section.get("revenue", []))
+        rows.append(_blank_separator("revenue", n))
 
-    # Прямые расходы
-    direct_total_amounts = _amounts_for_groups(months, by_group, ["direct_*"])
-    rows.append(
-        ReportRow(
-            label="Прямые расходы всего",
-            section="direct_total",
-            level=0,
-            bold=True,
-            background="blue",
-            values=_calc_row(months, revenue, direct_total_amounts),
-        )
+    # Прямые расходы: заголовок секции + все группы прямых расходов
+    direct_totals = section_totals.get("direct", [Decimal("0") for _ in range(n)])
+    _append_section(
+        rows,
+        "direct",
+        "Прямые расходы",
+        rows_by_section.get("direct", []),
+        direct_totals,
+        months,
+        revenue,
+        "blue",
+        n,
     )
 
-    direct_rows = [
-        ("продукты лавка", "direct_products", False),
-        ("себестоимость кейтеринг", "direct_catering_cost", False),
-        ("корм для животных", "direct_animal_feed", False),
-        ("бензин", "direct_gas", False),
-        ("служебное питание", "direct_meals", False),
-        ("оплата труда", "direct_wages", True),
-        ("Опреционные расходы", "direct_operational", False),
-        ("Иное", "direct_other", False),
-    ]
-    for label, group, group_by_employee in direct_rows:
-        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
-        row = ReportRow(
-            label=label,
-            section="direct",
-            level=1,
-            values=_calc_row(months, revenue, amounts),
-        )
-        if group_by_employee and group in by_employee:
-            for employee_name in sorted(by_employee[group].keys()):
-                emp_amounts = by_employee[group][employee_name]
-                row.subrows.append(
-                    ReportRow(
-                        label=f"  {employee_name}",
-                        section="direct",
-                        level=2,
-                        values=_calc_row(months, revenue, emp_amounts),
-                    )
-                )
-        rows.append(row)
-
-    # Накладные расходы
-    overhead_total_amounts = _amounts_for_groups(months, by_group, ["overhead_*"])
-    rows.append(
-        ReportRow(
-            label="Накладные расходы всего",
-            section="overhead_total",
-            level=0,
-            bold=True,
-            background="blue",
-            values=_calc_row(months, revenue, overhead_total_amounts),
-        )
+    # Накладные расходы: заголовок секции + все группы накладных расходов
+    overhead_totals = section_totals.get("overhead", [Decimal("0") for _ in range(n)])
+    _append_section(
+        rows,
+        "overhead",
+        "Накладные расходы",
+        rows_by_section.get("overhead", []),
+        overhead_totals,
+        months,
+        revenue,
+        "blue",
+        n,
     )
 
-    overhead_rows = [
-        ("эквайринг", "overhead_equaring"),
-        ("доставка", "overhead_delivery"),
-        ("WiFi", "overhead_wifi"),
-        ("Комиссия банка", "overhead_bank"),
-        ("ИТ", "overhead_it"),
-        ("электричество", "overhead_electricity"),
-        ("финансы", "overhead_finance"),
-        ("маркетинг", "overhead_marketing"),
-        ("Оборудование и инвентарь", "overhead_equipment"),
-        ("Аренда помещения", "overhead_rent"),
-        ("Прочие накладные", "overhead_other"),
-    ]
-    for label, group in overhead_rows:
-        amounts = by_group.get(group, [Decimal("0") for _ in range(n)])
+    # Остальные группы отчёта (например, налоги и прочее)
+    other_section_rows = []
+    other_sections = {"revenue", "direct", "overhead"}
+    for section in sorted(rows_by_section, key=lambda s: (s not in {"other", "taxes"}, s)):
+        if section in other_sections:
+            continue
+        other_section_rows.extend(rows_by_section.get(section, []))
+
+    if other_section_rows:
+        other_totals = [Decimal("0") for _ in range(n)]
+        for section in rows_by_section:
+            if section in other_sections:
+                continue
+            for i in range(n):
+                other_totals[i] += section_totals.get(section, [Decimal("0") for _ in range(n)])[i]
         rows.append(
-            ReportRow(
-                label=label,
-                section="overhead",
-                level=1,
-                values=_calc_row(months, revenue, amounts),
-            )
+            _section_total_row("other", "Другие группы", other_totals, months, revenue, "blue")
         )
-
-    # Налоги
-    taxes_amounts = by_group.get("taxes", [Decimal("0") for _ in range(n)])
-    rows.append(
-        ReportRow(
-            label="Налоги и сборы",
-            section="taxes",
-            level=0,
-            bold=True,
-            background="blue",
-            values=_calc_row(months, revenue, taxes_amounts),
-        )
-    )
+        rows.extend(other_section_rows)
+        rows.append(_blank_separator("other", n))
 
     # Прибыль
     profit_amounts = [
-        revenue[i] - direct_total_amounts[i] - overhead_total_amounts[i] - taxes_amounts[i]
+        revenue[i] - direct_totals[i] - overhead_totals[i] - (
+            sum(section_totals.get(s, [Decimal("0") for _ in range(n)])[i] for s in rows_by_section if s not in {"revenue", "direct", "overhead"})
+        )
         for i in range(n)
     ]
+
+    # Прибыль уже считается по всем расходам, включая налоги и прочее.
+    # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.
+    other_total_all = [Decimal("0") for _ in range(n)]
+    for section, totals in section_totals.items():
+        if section == "revenue":
+            continue
+        for i in range(n):
+            other_total_all[i] += totals[i]
+
+    profit_amounts = [revenue[i] - other_total_all[i] for i in range(n)]
+
     rows.append(
         ReportRow(
             label="Прибыль",
@@ -3681,26 +4567,30 @@ def build_report(db: Session) -> ReportData:
     for i in range(n):
         running += profit_amounts[i]
         cumulative[i] = running
+    # Общая сумма за всё время — в колонке B (первый столбец данных)
+    cumulative_first = [sum(cumulative, start=Decimal("0"))]
     rows.append(
         ReportRow(
-            label="прибыль итого",
+            label="Прибыль итого",
             section="cumulative_profit",
             level=1,
             bold=True,
             skip_percent=True,
-            values=_calc_row(months, revenue, cumulative, skip_percent=True),
+            values=[RowValue(amount=amt, percent=Decimal("0"), raw=True) for amt in cumulative_first],
         )
     )
 
-    # Инвестиции (пустая строка для ручного заполнения)
+    # Инвестиции вводятся на отдельной вкладке и попадают в отчёт по месяцам.
+    # Общая сумма — в колонке B.
+    investment_first = [sum(investment_amounts, start=Decimal("0"))]
     rows.append(
         ReportRow(
-            label="инвестиции",
+            label="Инвестиции",
             section="manual",
             level=1,
             bold=True,
             skip_percent=True,
-            values=[RowValue(amount=Decimal("0"), percent=Decimal("0"), raw=False) for _ in range(n)],
+            values=[RowValue(amount=amt, percent=Decimal("0"), raw=True) for amt in investment_first],
         )
     )
 
@@ -3715,25 +4605,42 @@ def report_to_matrix(report: ReportData) -> list[list]:
     months = report.months
 
     # Заголовок месяцев: первая ячейка пустая, затем для каждого месяца название (объединяется в два столбца)
-    header1 = [""]
+    header1: list[object] = [""]
     for label in months:
         header1.extend([label, ""])
 
-    header2 = [""]
+    header2: list[object] = [""]
     for _ in months:
         header2.extend(["сумма", "%"])
 
     matrix = [header1, header2]
 
+    # Строка «Выручка всего» в таблице (данные начинаются с 3-й строки).
+    # Используется как знаменатель в формулах процентов.
+    REVENUE_ROW = 3
+
+    def _col_letter(col: int) -> str:
+        """Числовой индекс столбца (1-based) в буквенный (A, B, ..., Z, AA)."""
+        result = ""
+        while col > 0:
+            col, rem = divmod(col - 1, 26)
+            result = chr(65 + rem) + result
+        return result
+
     def append_row(row: ReportRow):
-        line = [row.label]
-        for val in row.values:
+        line: list[object] = [row.label]
+        row_number = len(matrix) + 1
+        for i, val in enumerate(row.values):
+            # Столбец суммы месяца i (1-based): B, D, F, ...
+            sum_col_letter = _col_letter(2 + i * 2)
             if val.raw:
                 line.append(float(val.amount))
                 if row.skip_percent:
                     line.append("")
                 else:
-                    line.append(float(val.percent) / 100)  # для процентного формата
+                    # Живая формула: доля от выручки этого месяца.
+                    # Пересчитывается автоматически при изменении сумм в таблице.
+                    line.append(str(f'={sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW}'))
             else:
                 line.append("")
                 line.append("")
@@ -3750,6 +4657,9 @@ def report_to_matrix(report: ReportData) -> list[list]:
 # app\services\scheduler.py
 """Фоновый планировщик синхронизации с Google Sheets."""
 import logging
+from datetime import datetime
+
+import pytz
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -3761,7 +4671,7 @@ from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
 
 
 def sync_job() -> None:
@@ -3926,7 +4836,8 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
             logger.warning("Не удалось объединить ячейки заголовка: %s", exc)
 
     # 2. Форматирование заголовков (первая и вторая строки)
-    header_range = f"A1:{_col_letter(1 + num_months * 2)}2"
+    last_col = 1 + num_months * 2
+    header_range = f"A1:{_col_letter(last_col)}2"
     try:
         worksheet.format(
             header_range,
@@ -3979,7 +4890,9 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
         current = _collect_rows(row, current)
 
     for row_idx, row in flat_rows:
-        range_a = f"A{row_idx}"
+        # Форматируем всю строку до конца месяцев (колонка B + пары сумма/%)
+        row_end_col = _col_letter(last_col)
+        range_full = f"A{row_idx}:{row_end_col}{row_idx}"
         try:
             fmt: dict = {"textFormat": {"bold": row.bold}}
             if row.background == "yellow":
@@ -3989,22 +4902,16 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
             elif row.background == "green":
                 fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
 
-            worksheet.format(range_a, fmt)
+            worksheet.format(range_full, fmt)
 
-            if row.bold:
-                row_end_col = _col_letter(1 + num_months * 2)
-                worksheet.format(
-                    f"A{row_idx}:{row_end_col}{row_idx}",
-                    {"textFormat": {"bold": True}},
-                )
-            elif row.section in {"direct", "overhead"} and row.level >= 2:
-                worksheet.format(range_a, {"textFormat": {"italic": True}})
+            if row.section in {"direct", "overhead"} and row.level >= 2:
+                worksheet.format(f"A{row_idx}:{row_end_col}{row_idx}", {"textFormat": {"italic": True}})
         except Exception as exc:  # noqa: BLE001
             logger.warning("Не удалось применить форматирование строки %s: %s", row_idx, exc)
 
     # 5. Ширина столбцов
     try:
-        worksheet.columns_auto_resize(1, 1 + num_months * 2)
+        worksheet.columns_auto_resize(1, last_col)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 
@@ -4027,9 +4934,11 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         report = build_report(db)
         matrix = report_to_matrix(report)
 
-        # Очищаем лист и записываем данные
+        # Очищаем лист и записываем данные.
+        # USER_ENTERED обязателен: иначе формулы процентов записываются как текст
+        # и в ячейке отображается "'=B3/B$3" вместо вычисленного процента.
         worksheet.clear()
-        worksheet.update(matrix)
+        worksheet.update(matrix, value_input_option="USER_ENTERED")
 
         # Применяем форматирование
         _format_report_sheet(worksheet, report, matrix)
@@ -4245,6 +5154,31 @@ h1, h2 {
     margin: 0;
 }
 
+.table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.table-wrapper th,
+.table-wrapper td {
+    padding: 0.35rem 0.4rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.table-wrapper th {
+    background: var(--bg);
+    font-weight: 600;
+}
+.table-wrapper td.actions {
+    white-space: nowrap;
+    text-align: right;
+}
+.table-wrapper td.numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .table-wrapper {
     overflow-x: auto;
     background: var(--surface);
@@ -4335,43 +5269,161 @@ th {
 .category-tree {
     list-style: none;
     padding-left: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
 }
 
 .category-tree ul {
     list-style: none;
-    padding-left: 1.5rem;
-    border-left: 1px dashed var(--border);
-    margin: 0.25rem 0 0.5rem;
+    padding-left: 0;
+    margin: 0.75rem 0 0 0.35rem;
 }
 
 .category-tree li {
-    margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.tree-node {
+    display: block;
+    position: relative;
+    margin-bottom: 0.7rem;
 }
 
 .category-row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.75rem;
+    width: 100%;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid var(--border);
+    border-left: 4px solid #7c3aed;
+    border-radius: 0.8rem;
+    padding: 0.8rem 0.9rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.category-row:hover {
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.category-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 180px;
+}
+
+.category-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+    display: inline-block;
 }
 
 .category-name {
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
 }
 
-.category-kind {
-    color: var(--muted);
-    font-size: 0.85rem;
+.category-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-left: 0.1rem;
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.22rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.category-badge.kind.income {
+    background: rgba(25, 135, 84, 0.12);
+    color: #146c43;
+    border-color: rgba(25, 135, 84, 0.18);
+}
+
+.category-badge.kind.expense {
+    background: rgba(220, 53, 69, 0.1);
+    color: #b02a37;
+    border-color: rgba(220, 53, 69, 0.18);
+}
+
+.category-badge.report {
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d6efd;
+    border-color: rgba(13, 110, 253, 0.14);
 }
 
 .category-flags {
-    margin-left: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.category-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 50%;
+    background: rgba(108, 117, 125, 0.08);
+    font-size: 0.88rem;
 }
 
 .category-actions {
     margin-left: auto;
     display: flex;
-    gap: 0.3rem;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.tree-children {
+    list-style: none;
+    padding-left: 1.1rem;
+    margin: 0.75rem 0 0 0.5rem;
+    border-left: 1px solid #dfe6ee;
+    display: block;
+}
+
+.tree-children > li {
+    position: relative;
+    padding-left: 1rem;
+    margin-top: 0.7rem;
+    display: block;
+}
+
+.tree-children > li::before {
+    content: "";
+    position: absolute;
+    left: -0.05rem;
+    top: 1rem;
+    width: 0.8rem;
+    height: 1px;
+    background: #dfe6ee;
+}
+
+.tree-children > li:last-child {
+    margin-bottom: 0;
 }
 
 .edit-form {
@@ -4872,23 +5924,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const currentValue = categorySelect.value;
         categorySelect.innerHTML = '<option value="">—</option>';
         categoryTree.forEach((cat) => {
+            // Показываем только корневые категории (без дочерних) в основном списке
+            if (cat.children && cat.children.length > 0) {
+                return; // пропускаем категории с детьми — они в подкатегории
+            }
             const option = document.createElement("option");
             option.value = cat.id;
             option.textContent = cat.name;
-            option.dataset.hasChildren = cat.children && cat.children.length > 0;
             categorySelect.appendChild(option);
         });
         categorySelect.value = currentValue;
-    }
-
-    async function loadProducts() {
-        const res = await fetch("/api/products?active=true");
-        products = await res.json();
-        document.querySelectorAll(".product-select").forEach((select) => {
-            const current = select.value;
-            fillProductSelect(select);
-            select.value = current;
-        });
     }
 
     async function loadProductPrices() {
@@ -5457,17 +6502,23 @@ def test_build_report_totals(client):
     assert revenue_total.values[0].amount == 1000
     assert revenue_total.values[0].percent == 100
 
-    lavka_row = rows_by_label["Выручка лавка"]
+    lavka_row = rows_by_label["Доход"]
     assert lavka_row.values[0].amount == 1000
     assert lavka_row.values[0].percent == 100
+    # Категория «Лавка» внутри группы «Доход»
+    assert any(sub.label == "· Лавка" for sub in lavka_row.subrows)
 
-    direct_total = rows_by_label["Прямые расходы всего"]
-    assert direct_total.values[0].amount == 300
-    assert direct_total.values[0].percent == 30
+    direct_section = rows_by_label["Прямые расходы"]
+    assert direct_section.values[0].amount == 300
+    assert direct_section.values[0].percent == 30
 
-    overhead_total = rows_by_label["Накладные расходы всего"]
-    assert overhead_total.values[0].amount == 100
-    assert overhead_total.values[0].percent == 10
+    overhead_section = rows_by_label["Накладные расходы"]
+    assert overhead_section.values[0].amount == 100
+    assert overhead_section.values[0].percent == 10
+
+    other_section = rows_by_label["Другие группы"]
+    assert other_section.values[0].amount == 50
+    assert other_section.values[0].percent == 5
 
     taxes_row = rows_by_label["Налоги и сборы"]
     assert taxes_row.values[0].amount == 50
@@ -5476,7 +6527,7 @@ def test_build_report_totals(client):
     profit_row = rows_by_label["Прибыль"]
     assert profit_row.values[0].amount == 550
 
-    cumulative_row = rows_by_label["прибыль итого"]
+    cumulative_row = rows_by_label["Прибыль итого"]
     assert cumulative_row.values[0].amount == 550
 
 
@@ -5511,8 +6562,44 @@ def test_report_matrix_shape(client):
     assert len(matrix) > 2
 
 
+def test_investment_tab_and_report_row(client):
+    client.post("/login", data={"password": "admin"})
+
+    response = client.post(
+        "/investments",
+        data={
+            "investment_date": "2026-08-15",
+            "amount": "12500,50",
+            "comment": "Оборудование",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    page = client.get("/investments")
+    assert page.status_code == 200
+    assert "Оборудование" in page.text
+    assert "12500.50" in page.text
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+    finally:
+        db.close()
+
+    investment_row = next(row for row in report.rows if row.label == "Инвестиции")
+    assert report.months == ["август"]
+    assert investment_row.values[0].amount == 12500.50
+
+    matrix = report_to_matrix(report)
+    investment_matrix_row = next(row for row in matrix if row[0] == "Инвестиции")
+    assert investment_matrix_row[1] == 12500.5
+
+
 # tests\test_smoke.py
 """Дымовые тесты основных сценариев."""
+
+import re
 
 
 def test_health(client):
@@ -5656,6 +6743,29 @@ def test_create_expense_operation_with_products(client):
     assert len(op["items"]) == 2
 
 
+def test_report_group_dropdown_is_deduplicated_and_clear(client):
+    client.post("/login", data={"password": "admin"})
+
+    client.post("/report-groups", data={"name": "Дублирующаяся группа", "section": "direct", "sort_order": "10"})
+    duplicate_response = client.post(
+        "/report-groups",
+        data={"name": "Дублирующаяся группа", "section": "direct", "sort_order": "11"},
+        follow_redirects=False,
+    )
+    assert duplicate_response.status_code == 400
+
+    groups_response = client.get("/api/report-groups")
+    assert groups_response.status_code == 200
+    matching_groups = [group for group in groups_response.json() if group["name"] == "Дублирующаяся группа"]
+    assert len(matching_groups) == 1
+    assert matching_groups[0]["section"] == "direct"
+
+    page_response = client.get("/categories")
+    assert page_response.status_code == 200
+    assert "Дублирующаяся группа (Прямые расходы)" in page_response.text
+    assert "Прямые расходы" in page_response.text
+
+
 def test_edit_and_delete_operation(client):
     client.post("/login", data={"password": "admin"})
 
@@ -5789,6 +6899,7 @@ def test_api_stats_filters(client):
 
 # tests\test_sync.py
 """Тесты синхронизации с Google Sheets."""
+import time
 from unittest.mock import MagicMock
 
 from app.config import settings
@@ -5860,10 +6971,20 @@ def test_sync_now_success(client, monkeypatch):
     )
 
     response = client.post("/sync/now")
-    assert response.status_code == 200
+    assert response.status_code == 202
     data = response.json()
     assert data["success"] is True
-    assert data["synced"] > 0
+
+    status_data = None
+    for _ in range(20):
+        status_response = client.get(f"/api/sync/status/{data['job_id']}")
+        status_data = status_response.json()
+        if status_data["status"] in {"success", "error"}:
+            break
+        time.sleep(0.01)
+
+    assert status_data["status"] == "success"
+    assert status_data["synced"] > 0
 
     logs_response = client.get("/api/sync/logs")
     assert logs_response.status_code == 200

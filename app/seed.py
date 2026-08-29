@@ -8,7 +8,7 @@ from app.models import Category, Employee, ReportGroup
 REPORT_GROUPS_SEED: list[tuple[str, str, int]] = [
     ("Доход", "revenue", 10),
     ("Прямой расход", "direct", 20),
-    ("Накладный расход", "overhead", 30),
+    ("Накладные расходы", "overhead", 30),
     ("Налоги и сборы", "taxes", 40),
 ]
 
@@ -83,18 +83,14 @@ def seed_db(session: Session) -> None:
     }
     income = groups["Доход"]
     direct = groups["Прямой расход"]
-    overhead = groups["Накладный расход"]
+    overhead = groups["Накладные расходы"]
     taxes = groups["Налоги и сборы"]
 
     # Доходы
     income_categories = [
         ("Лавка", {"requires_guests": True}),
-        ("Ужины/Обеды", {"requires_guests": True}),
-        ("Выездные мероприятия", {"requires_guests": True}),
+        ("Кейтеринг", {"requires_guests": True}),
         ("Открытые события", {"requires_guests": True}),
-        ("Доставка продуктов", {"requires_guests": True}),
-        ("Комиссия", {"requires_guests": True}),
-        ("Аренда", {"requires_guests": False}),
     ]
 
     for name, flags in income_categories:
@@ -107,12 +103,34 @@ def seed_db(session: Session) -> None:
             **flags,
         )
 
-    # Дочерние категории доходов (аренда)
+    # Расходы
+    expense_categories = [
+        ("Аренда", {"requires_guests": False}),
+        ("Оборудование", {"requires_guests": False}),
+        ("Площадка", {"requires_guests": False}),
+        ("Посуда", {"requires_guests": False}),
+        ("Выездные мероприятия", {"requires_guests": True}),
+        ("Доставка продуктов", {"requires_guests": True}),
+        ("Комиссия", {"requires_guests": True}),
+        ("Открытые события", {"requires_guests": True}),
+        ("Ужины/Обеды", {"requires_guests": True}),
+    ]
+    for name, flags in expense_categories:
+        _get_or_create_category(
+            session,
+            name=name,
+            kind="expense",
+            report_group=overhead,
+            requires_payment_method=True,
+            **flags,
+        )
+
+    # Дочерние категории расходов (аренда)
     arenda = _get_or_create_category(
         session,
         name="Аренда",
-        kind="income",
-        report_group=income,
+        kind="expense",
+        report_group=overhead,
         requires_payment_method=True,
         requires_guests=False,
     )
@@ -120,9 +138,9 @@ def seed_db(session: Session) -> None:
         _get_or_create_category(
             session,
             name=child_name,
-            kind="income",
+            kind="expense",
             parent=arenda,
-            report_group=income,
+            report_group=overhead,
             requires_payment_method=True,
             requires_guests=False,
         )

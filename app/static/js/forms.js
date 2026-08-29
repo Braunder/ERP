@@ -44,23 +44,16 @@
         const currentValue = categorySelect.value;
         categorySelect.innerHTML = '<option value="">—</option>';
         categoryTree.forEach((cat) => {
+            // Показываем только корневые категории (без дочерних) в основном списке
+            if (cat.children && cat.children.length > 0) {
+                return; // пропускаем категории с детьми — они в подкатегории
+            }
             const option = document.createElement("option");
             option.value = cat.id;
             option.textContent = cat.name;
-            option.dataset.hasChildren = cat.children && cat.children.length > 0;
             categorySelect.appendChild(option);
         });
         categorySelect.value = currentValue;
-    }
-
-    async function loadProducts() {
-        const res = await fetch("/api/products?active=true");
-        products = await res.json();
-        document.querySelectorAll(".product-select").forEach((select) => {
-            const current = select.value;
-            fillProductSelect(select);
-            select.value = current;
-        });
     }
 
     async function loadProductPrices() {

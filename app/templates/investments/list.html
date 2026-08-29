@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Инвестиции{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Инвестиции</h1>
+</div>
+
+<form method="post" action="/investments" class="form-card">
+    <h2>Добавить инвестицию</h2>
+    <div class="form-row">
+        <label>Дата
+            <input type="date" name="investment_date" required>
+        </label>
+        <label>Сумма, ₽
+            <input type="text" name="amount" inputmode="decimal" placeholder="0.00" required>
+        </label>
+        <label>Комментарий
+            <input type="text" name="comment" maxlength="500">
+        </label>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </div>
+</form>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Сумма</th>
+                <th>Комментарий</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for investment in investments %}
+            <tr>
+                <td>{{ investment.date }}</td>
+                <td class="numeric">{{ "%.2f"|format(investment.amount) }} ₽</td>
+                <td>{{ investment.comment or '' }}</td>
+                <td class="actions">
+                    <form method="post" action="/investments/{{ investment.id }}/delete" class="inline" onsubmit="return confirmDelete()">
+                        <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="empty">Инвестиций пока нет</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th>Итого</th>
+                <th class="numeric">{{ "%.2f"|format(total) }} ₽</th>
+                <th colspan="2"></th>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% endblock %}

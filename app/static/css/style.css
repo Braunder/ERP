@@ -193,6 +193,31 @@ h1, h2 {
     margin: 0;
 }
 
+.table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+.table-wrapper th,
+.table-wrapper td {
+    padding: 0.35rem 0.4rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.table-wrapper th {
+    background: var(--bg);
+    font-weight: 600;
+}
+.table-wrapper td.actions {
+    white-space: nowrap;
+    text-align: right;
+}
+.table-wrapper td.numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .table-wrapper {
     overflow-x: auto;
     background: var(--surface);

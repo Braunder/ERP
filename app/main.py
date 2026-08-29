@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from app.database import Base
-from app.routers import auth, backups, categories, employees, health, operations, products, report_groups, stats, suppliers, sync
+from app.routers import auth, backups, categories, employees, health, investments, operations, products, report_groups, stats, suppliers, sync
 from app.seed import seed_db
 from app.services import scheduler as scheduler_module
 
@@ -67,6 +67,7 @@ templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 app.include_router(auth.router)
 app.include_router(health.router)
 app.include_router(operations.router)
+app.include_router(investments.router)
 app.include_router(categories.router)
 app.include_router(report_groups.router)
 app.include_router(suppliers.router)

@@ -115,6 +115,12 @@ async function filterCategories(groupId) {
             html += '</div></div>';
             html += '<form method="post" action="/categories/' + node.id + '" id="edit-form-' + node.id + '" class="edit-form hidden">';
             html += '<div class="form-row"><label>Название <input type="text" name="name" value="' + (node.name || '') + '" required></label></div>';
+            html += '<div class="form-row"><label>Тип <select name="kind" required><option value="income" ' + (node.kind === 'income' ? 'selected' : '') + '>Доход</option><option value="expense" ' + (node.kind === 'expense' ? 'selected' : '') + '>Расход</option></select></label></div>';
+            html += '<div class="form-row"><label>Родитель <select name="parent_id"><option value="">— без родителя —</option>';
+            // Генерируем опции из всех категорий типа (доход/расход)
+            const allCats = {{ all_categories|map(attribute='id')|list|tojson }}; // нужно передать данные
+            html += '</select></label></div>';
+            html += '<div class="form-row"><label>Группа в отчёте <select name="report_group_id"><option value="">— не в отчёте —</option><option value="1" ' + (node.report_group_id == 1 ? 'selected' : '') + '>Доход</option><option value="2" ' + (node.report_group_id == 2 ? 'selected' : '') + '>Прямой расход</option><option value="4" ' + (node.report_group_id == 4 ? 'selected' : '') + '>Налоги и сборы</option><option value="5" ' + (node.report_group_id == 5 ? 'selected' : '') + '>Накладные расходы</option></select></label></div>';
             html += '<fieldset class="flags">';
             html += '<label><input type="checkbox" name="requires_payment_method" ' + (node.requires_payment_method ? 'checked' : '') + '> Способ оплаты</label>';
             html += '<label><input type="checkbox" name="requires_guests" ' + (node.requires_guests ? 'checked' : '') + '> Гости</label>';
