@@ -26,4 +26,4 @@ RUN chmod +x run.py init_db.py
 ENV PYTHONUNBUFFERED=1
 
 # Запуск приложения
-CMD ["python", "init_db.py"] && python run.py
+CMD ["sh", "-c", "python init_db.py && python run.py"]
