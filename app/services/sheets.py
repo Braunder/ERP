@@ -1,4 +1,6 @@
+# app\services\sheets.py
 """Сервис синхронизации операций с Google Sheets в формате отчёта P&L."""
+import json
 import logging
 from pathlib import Path
 
@@ -21,10 +23,40 @@ REPORT_SHEET_TITLE = "Отчет"
 
 
 def get_gsheets_client() -> gspread.Client:
-    """Авторизация в Google Sheets через сервисный аккаунт."""
+    """Авторизация в Google Sheets через сервисный аккаунт.
+
+    Поддерживает два способа передать ключ сервисного аккаунта:
+
+    1. ``GOOGLE_SA_JSON`` — содержимое JSON-ключа целиком в переменной
+       окружения. Так делают на Railway и других PaaS, где нельзя
+       закоммитить секретный файл в репозиторий: значение переменной
+       вставляется прямо в дашборде из скачанного JSON-файла сервисного
+       аккаунта. Имеет приоритет над ``GOOGLE_SA_FILE``, если задано.
+    2. ``GOOGLE_SA_FILE`` — путь к JSON-файлу на диске. Используется для
+       локальной разработки, где файл ключа лежит рядом с проектом.
+    """
+    if settings.GOOGLE_SA_JSON:
+        try:
+            info = json.loads(settings.GOOGLE_SA_JSON)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "Переменная окружения GOOGLE_SA_JSON содержит невалидный JSON. "
+                "Скопируйте содержимое скачанного файла сервисного аккаунта "
+                "целиком, без изменений и лишних кавычек."
+            ) from exc
+        return gspread.service_account_from_dict(info)
+
     sa_path = Path(settings.GOOGLE_SA_FILE)
     if not sa_path.is_absolute():
         sa_path = BASE_DIR / sa_path
+    if not sa_path.exists():
+        raise RuntimeError(
+            f"Файл сервисного аккаунта Google не найден: {sa_path}. "
+            "На хостингах вроде Railway файл ключа недоступен на диске — "
+            "задайте переменную окружения GOOGLE_SA_JSON с содержимым "
+            "JSON-ключа сервисного аккаунта. Для локальной разработки "
+            "убедитесь, что GOOGLE_SA_FILE указывает на существующий файл."
+        )
     return gspread.service_account(filename=str(sa_path))
 
 
@@ -197,6 +229,11 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
     except gspread.exceptions.APIError as exc:
         logger.exception("Ошибка Google Sheets API")
         raise RuntimeError(f"Ошибка Google Sheets API: {exc}") from exc
+    except RuntimeError:
+        # Уже осмысленное сообщение из get_gsheets_client — пробрасываем как есть,
+        # не оборачивая повторно в общий "Ошибка синхронизации: ...".
+        logger.exception("Ошибка синхронизации с Google Sheets")
+        raise
     except Exception as exc:
         logger.exception("Ошибка синхронизации с Google Sheets")
         raise RuntimeError(f"Ошибка синхронизации: {exc}") from exc
