@@ -246,6 +246,12 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
             ]
         )
 
+    # Добавляем строку фильтра в первую строку: Google Sheets покажет
+    # фильтр для данных, начиная со второй строки заголовка.
+    filter_row = ["" for _ in range(len(headers))]
+    if rows:
+        rows.insert(1, filter_row)
+
     return rows
 
 
@@ -274,8 +280,10 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         operations_worksheet = _get_or_create_worksheet(spreadsheet, OPERATIONS_SHEET_TITLE)
         operations_worksheet.clear()
         operations_worksheet.update(operations_matrix, value_input_option="USER_ENTERED")
+        operations_worksheet.freeze(rows=2)
+        operations_worksheet.set_basic_filter()
 
-        operations_count = len(operations_matrix) - 1
+        operations_count = len(operations_matrix) - 2
 
         return {
             "synced": operations_count,
