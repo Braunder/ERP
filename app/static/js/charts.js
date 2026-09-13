@@ -203,8 +203,24 @@ async function loadData() {
   const params = buildQueryParams();
   try {
     const res = await fetch(`/api/stats/data?${params.toString()}`);
-    if (!res.ok) throw new Error("Ошибка загрузки данных");
-    const data = await res.json();
+    const rawText = await res.text();
+
+    if (!res.ok) {
+      let serverMessage = rawText || "Ошибка загрузки данных";
+      try {
+        const parsed = JSON.parse(rawText);
+        if (parsed && parsed.detail) {
+          serverMessage = Array.isArray(parsed.detail)
+            ? parsed.detail.map((item) => item.msg || item).join("; ")
+            : parsed.detail;
+        }
+      } catch (_) {
+        // rawText уже содержит текст ответа сервера, оставляем как есть
+      }
+      throw new Error(serverMessage);
+    }
+
+    const data = rawText ? JSON.parse(rawText) : { totals: { income: "0.00", expense: "0.00", balance: "0.00" }, by_period: [], by_category: [], by_payment: [] };
 
     document.getElementById("total-income").textContent = formatMoney(data.totals.income);
     document.getElementById("total-expense").textContent = formatMoney(data.totals.expense);
@@ -225,8 +241,10 @@ async function loadData() {
     if (data.by_category.length > 0) renderCategoryChart(data);
     if (data.by_payment.length > 0) renderPaymentChart(data);
   } catch (err) {
-    console.error(err);
-    alert("Не удалось загрузить данные для графиков");
+    console.error("Ошибка загрузки данных", err);
+    document.getElementById("no-data").classList.remove("hidden");
+    document.getElementById("no-data").textContent = err && err.message ? err.message : "Не удалось загрузить данные для графиков";
+    document.getElementById("charts-container").classList.add("hidden");
   }
 }
 
