@@ -1,12 +1,19 @@
-"""Сервис резервного копирования SQLite-базы данных."""
+"""Сервис резервного копирования баз данных (SQLite и PostgreSQL)."""
 import logging
+import os
 import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from app.config import BASE_DIR, settings
 
 logger = logging.getLogger(__name__)
+
+
+def _is_postgres_url(database_url: str) -> bool:
+    return database_url.startswith(("postgresql://", "postgresql+psycopg2://", "postgres://"))
 
 
 def _resolve_db_path(database_url: str) -> Path | None:
@@ -26,6 +33,49 @@ def _resolve_db_path(database_url: str) -> Path | None:
     if not db_path_obj.is_absolute():
         db_path_obj = BASE_DIR / db_path_obj
     return db_path_obj
+
+
+def _build_pg_env(database_url: str) -> dict[str, str]:
+    env = os.environ.copy()
+    parsed = urlsplit(database_url)
+    if parsed.password:
+        env["PGPASSWORD"] = parsed.password
+    return env
+
+
+def _backup_postgres_database(database_url: str) -> Path | None:
+    """Создаёт SQL-дамп PostgreSQL через pg_dump."""
+    backup_dir = _backup_dir()
+    try:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
+        return None
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    backup_path = backup_dir / f"app_{timestamp}.sql"
+
+    try:
+        result = subprocess.run(
+            ["pg_dump", "--clean", "--if-exists", "--file", str(backup_path), database_url],
+            capture_output=True,
+            text=True,
+            env=_build_pg_env(database_url),
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        logger.error("Команда pg_dump недоступна: %s", exc)
+        return None
+
+    if result.returncode != 0:
+        logger.error("Не удалось создать резервную копию PostgreSQL: %s", result.stderr.strip() or result.stdout.strip())
+        if backup_path.exists():
+            backup_path.unlink(missing_ok=True)
+        return None
+
+    logger.info("Создана резервная копия PostgreSQL: %s", backup_path)
+    _rotate_backups(backup_dir)
+    return backup_path
 
 
 def _backup_dir() -> Path:
@@ -50,15 +100,18 @@ def _parse_existing_backups(backup_dir: Path) -> list[Path]:
 
 
 def backup_database() -> Path | None:
-    """Создаёт резервную копию SQLite-БД и ротирует старые копии.
+    """Создаёт резервную копию БД и ротирует старые копии.
 
     Returns:
-        Путь к созданной копии или None, если БД не SQLite / недоступна.
+        Путь к созданной копии или None, если БД недоступна.
     """
+    if _is_postgres_url(settings.DATABASE_URL):
+        return _backup_postgres_database(settings.DATABASE_URL)
+
     db_path = _resolve_db_path(settings.DATABASE_URL)
     if db_path is None:
         logger.warning(
-            "Резервное копирование поддерживается только для SQLite; текущий DATABASE_URL=%s",
+            "Резервное копирование не поддерживается для текущего DATABASE_URL=%s",
             settings.DATABASE_URL,
         )
         return None
@@ -108,6 +161,30 @@ def list_backups() -> list[Path]:
     return _parse_existing_backups(_backup_dir())
 
 
+def _restore_postgres_database(backup_path: Path) -> Path:
+    """Восстанавливает PostgreSQL из SQL-дампа через psql."""
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Резервная копия не найдена: {backup_path}")
+
+    env = _build_pg_env(settings.DATABASE_URL)
+    try:
+        result = subprocess.run(
+            ["psql", "-d", settings.DATABASE_URL, "-f", str(backup_path)],
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError("Команда psql недоступна") from exc
+
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "Не удалось восстановить PostgreSQL")
+
+    logger.info("База данных PostgreSQL восстановлена из %s", backup_path)
+    return backup_path
+
+
 def restore_database(backup_path: Path) -> Path:
     """Восстанавливает БД из указанной резервной копии.
 
@@ -119,15 +196,18 @@ def restore_database(backup_path: Path) -> Path:
 
     Raises:
         FileNotFoundError: если файл копии не существует.
-        ValueError: если текущая БД не SQLite.
+        ValueError: если текущая БД не поддерживается.
     """
     if not backup_path.exists():
         raise FileNotFoundError(f"Резервная копия не найдена: {backup_path}")
 
+    if _is_postgres_url(settings.DATABASE_URL):
+        return _restore_postgres_database(backup_path)
+
     db_path = _resolve_db_path(settings.DATABASE_URL)
     if db_path is None:
         raise ValueError(
-            f"Восстановление поддерживается только для SQLite; текущий DATABASE_URL={settings.DATABASE_URL}"
+            f"Восстановление поддерживается только для SQLite/PostgreSQL; текущий DATABASE_URL={settings.DATABASE_URL}"
         )
 
     db_path.parent.mkdir(parents=True, exist_ok=True)

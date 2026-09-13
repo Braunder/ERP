@@ -1,5 +1,6 @@
 """Тесты сервиса резервного копирования."""
 from pathlib import Path
+from types import SimpleNamespace
 
 from app.config import settings
 from app.services.backup import backup_database, list_backups, restore_database
@@ -61,6 +62,31 @@ def test_restore_database_replaces_current_db(client, monkeypatch, tmp_path):
     restore_database(backup_path)
 
     assert db_path.read_text() == "current data"
+
+
+def test_backup_database_supports_postgres(monkeypatch, tmp_path):
+    backup_dir = tmp_path / "backups"
+    db_url = "postgresql://user:secret@localhost:5432/erp"
+
+    monkeypatch.setattr(settings, "DATABASE_URL", db_url)
+    monkeypatch.setattr(settings, "BACKUP_DIR", str(backup_dir))
+    monkeypatch.setattr(settings, "BACKUP_KEEP", 3)
+
+    calls = []
+
+    def fake_run(cmd, capture_output, text, env, check):
+        calls.append({"cmd": cmd, "env": env})
+        target = Path(cmd[cmd.index("--file") + 1])
+        target.write_text("CREATE TABLE test (id integer);\n")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("app.services.backup.subprocess.run", fake_run)
+
+    backup_path = backup_database()
+
+    assert backup_path is not None
+    assert backup_path.suffix == ".sql"
+    assert calls and calls[0]["cmd"][0] == "pg_dump"
 
 
 def test_backup_page_requires_auth(client):

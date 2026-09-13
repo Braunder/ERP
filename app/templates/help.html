@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} — ERP</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            background: #f4f7fb;
+        }
+
+        .help-page {
+            max-width: 1100px;
+            margin: 32px auto 80px;
+            background: white;
+            border: 1px solid #dfe7f1;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            padding: 32px 28px;
+        }
+
+        .help-page h1, .help-page h2, .help-page h3 {
+            color: #1f2937;
+            margin-top: 1.5em;
+            margin-bottom: 0.6em;
+        }
+
+        .help-page h1 {
+            font-size: 2rem;
+            margin-top: 0;
+        }
+
+        .help-page h2 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.3rem;
+        }
+
+        .help-page h3 {
+            font-size: 1.15rem;
+        }
+
+        .help-page p,
+        .help-page li,
+        .help-page blockquote {
+            color: #374151;
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .help-page ul,
+        .help-page ol {
+            padding-left: 1.4rem;
+            margin: 0.8rem 0 1rem;
+        }
+
+        .help-page blockquote {
+            margin: 1rem 0;
+            padding: 0.8rem 1rem;
+            background: #f8fafc;
+            border-left: 4px solid #0d6efd;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .help-page hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 1.5rem 0;
+        }
+
+        .help-page a {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+
+        .help-page a:hover {
+            text-decoration: underline;
+        }
+
+        .help-page img {
+            max-width: 100%;
+            border: 1px solid #dfe7f1;
+            border-radius: 10px;
+            margin: 0.8rem 0;
+            display: block;
+        }
+
+        .help-page figure {
+            margin: 1rem 0;
+        }
+
+        .help-page figcaption {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .help-page {
+                padding: 20px 16px;
+                margin: 16px 12px 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="help-page">
+        {{ content | safe }}
+    </div>
+</body>
+</html>

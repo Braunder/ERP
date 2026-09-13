@@ -73,6 +73,29 @@ body {
     padding: 1rem;
 }
 
+.help-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 1.8rem;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(13, 110, 253, 0.35);
+    z-index: 1000;
+}
+
+.help-fab:hover {
+    background: var(--primary-hover);
+}
+
 .page-header {
     display: flex;
     align-items: center;
