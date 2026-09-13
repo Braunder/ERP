@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 
 import gspread
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, settings
-from app.models import SyncLog
+from app.models import Category, Operation, SyncLog
 from app.services.report import ReportRow, build_report, report_to_matrix
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ PAYMENT_METHOD_LABELS = {
 }
 
 REPORT_SHEET_TITLE = "Отчет"
+OPERATIONS_SHEET_TITLE = "Операции"
 
 
 def get_gsheets_client() -> gspread.Client:
@@ -192,8 +193,64 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
         logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 
 
+def _build_operations_matrix(db: Session) -> list[list[str]]:
+    """Возвращает матрицу для листа с полным перечнем операций."""
+    operations = (
+        db.query(Operation)
+        .options(
+            joinedload(Operation.category).joinedload(Category.parent),
+            joinedload(Operation.supplier),
+            joinedload(Operation.employee),
+        )
+        .order_by(Operation.date.desc(), Operation.id.desc())
+        .all()
+    )
+
+    headers = [
+        "ID",
+        "Дата",
+        "Тип",
+        "Категория",
+        "Родительская категория",
+        "Сумма",
+        "Комментарий",
+        "Гостей",
+        "Способ оплаты",
+        "Поставщик",
+        "Сотрудник",
+        "Ответственный",
+        "Создана",
+        "Обновлена",
+    ]
+    rows: list[list[str]] = [headers]
+
+    for operation in operations:
+        category_name = operation.category.name if operation.category else ""
+        parent_name = operation.category.parent.name if operation.category and operation.category.parent else ""
+        rows.append(
+            [
+                str(operation.id),
+                operation.date.isoformat(),
+                "Доход" if operation.kind == "income" else "Расход",
+                category_name,
+                parent_name,
+                str(operation.amount),
+                operation.comment or "",
+                str(operation.guests_count) if operation.guests_count is not None else "",
+                PAYMENT_METHOD_LABELS.get(operation.payment_method, operation.payment_method or ""),
+                operation.supplier.name if operation.supplier else "",
+                operation.employee.name if operation.employee else "",
+                operation.responsible or "",
+                operation.created_at.isoformat(timespec="seconds"),
+                operation.updated_at.isoformat(timespec="seconds"),
+            ]
+        )
+
+    return rows
+
+
 def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
-    """Выгружает отчёт P&L в Google Таблицу.
+    """Выгружает отчёт P&L и все операции в Google Таблицу.
 
     Возвращает словарь с результатами синхронизации.
     """
@@ -205,24 +262,28 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         client = get_gsheets_client()
         spreadsheet = client.open_by_key(spreadsheet_id)
 
-        worksheet = _get_or_create_worksheet(spreadsheet, REPORT_SHEET_TITLE)
-
         report = build_report(db)
         matrix = report_to_matrix(report)
 
-        # Очищаем лист и записываем данные.
-        # USER_ENTERED обязателен: иначе формулы процентов записываются как текст
-        # и в ячейке отображается "'=B3/B$3" вместо вычисленного процента.
-        worksheet.clear()
-        worksheet.update(matrix, value_input_option="USER_ENTERED")
+        report_worksheet = _get_or_create_worksheet(spreadsheet, REPORT_SHEET_TITLE)
+        report_worksheet.clear()
+        report_worksheet.update(matrix, value_input_option="USER_ENTERED")
+        _format_report_sheet(report_worksheet, report, matrix)
 
-        # Применяем форматирование
-        _format_report_sheet(worksheet, report, matrix)
+        operations_matrix = _build_operations_matrix(db)
+        operations_worksheet = _get_or_create_worksheet(spreadsheet, OPERATIONS_SHEET_TITLE)
+        operations_worksheet.clear()
+        operations_worksheet.update(operations_matrix, value_input_option="USER_ENTERED")
+
+        operations_count = len(operations_matrix) - 1
 
         return {
-            "synced": sum(1 for _ in matrix) - 2,  # примерное количество строк данных
+            "synced": operations_count,
+            "report_rows": sum(1 for _ in matrix) - 2,
+            "operations_rows": operations_count,
             "spreadsheet_id": spreadsheet_id,
             "sheet_title": REPORT_SHEET_TITLE,
+            "operations_sheet_title": OPERATIONS_SHEET_TITLE,
             "months": report.months,
         }
 

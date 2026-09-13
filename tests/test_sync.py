@@ -37,6 +37,45 @@ def test_sync_page(client):
     assert "Синхронизация" in response.text
 
 
+def test_sync_default_schedule_is_hourly():
+    assert settings.SYNC_SCHEDULE == "0 * * * *"
+
+
+def test_sync_exports_operations_sheet(client, monkeypatch):
+    monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "test_spreadsheet_id")
+    mock_gspread = _make_mock_gspread()
+    monkeypatch.setattr("app.services.sheets.gspread", mock_gspread)
+
+    client.post("/login", data={"password": "admin"})
+    category_response = client.post(
+        "/api/categories",
+        json={"name": "Операции синхронизация", "kind": "expense"},
+    )
+    category_id = category_response.json()["id"]
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-04-01",
+            "kind": "expense",
+            "category_id": category_id,
+            "amount": "123.45",
+            "comment": "Синхро",
+        },
+    )
+
+    from app.services.sheets import sync_operations_to_sheets
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        result = sync_operations_to_sheets(db)
+    finally:
+        db.close()
+
+    assert result["operations_rows"] >= 1
+    assert result["synced"] >= 1
+
+
 def test_sync_now_without_spreadsheet_id(client, monkeypatch):
     monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "")
     client.post("/login", data={"password": "admin"})

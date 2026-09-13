@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     GOOGLE_SA_JSON: str = ""
     GOOGLE_SPREADSHEET_ID: str = ""
     SYNC_ENABLED: bool = False
-    SYNC_SCHEDULE: str = "0 2 * * *"
+    SYNC_SCHEDULE: str = "0 * * * *"
 
     # Резервное копирование (фаза 4)
     BACKUP_DIR: str = "backups"
