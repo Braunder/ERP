@@ -1,5 +1,7 @@
 """Тесты API статистики и графиков."""
 
+from app.routers.stats import _period_expr
+
 
 def _find_category(client, kind, name):
     response = client.get(f"/api/categories?kind={kind}")
@@ -8,6 +10,14 @@ def _find_category(client, kind, name):
         if category["name"] == name:
             return category["id"]
     raise AssertionError(f"Категория {name!r} не найдена")
+
+
+def test_period_expr_uses_dialect_specific_functions():
+    sqlite_expr = str(_period_expr("month", "sqlite"))
+    postgres_expr = str(_period_expr("month", "postgresql"))
+
+    assert "strftime" in sqlite_expr.lower()
+    assert "to_char" in postgres_expr.lower()
 
 
 def test_stats_page_requires_auth(client):

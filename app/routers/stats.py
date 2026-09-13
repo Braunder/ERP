@@ -41,8 +41,17 @@ def _period_mode(date_from: date | None, date_to: date | None) -> str:
     return "day"
 
 
-def _period_expr(mode: str):
-    """SQLAlchemy-выражение для строки периода в зависимости от режима."""
+def _period_expr(mode: str, dialect_name: str | None = None):
+    """SQLAlchemy-выражение для строки периода в зависимости от режима и базы данных."""
+    dialect_name = dialect_name or "sqlite"
+
+    if dialect_name == "postgresql":
+        if mode == "month":
+            return func.to_char(Operation.date, "YYYY-MM")
+        if mode == "week":
+            return func.to_char(Operation.date, "IYYY-IW")
+        return func.to_char(Operation.date, "YYYY-MM-DD")
+
     if mode == "month":
         return func.strftime("%Y-%m", Operation.date)
     if mode == "week":
@@ -171,7 +180,8 @@ async def api_stats_data(
 
     # Группировка по периодам
     mode = _period_mode(date_from, date_to)
-    period_expr = _period_expr(mode)
+    dialect_name = db.bind.dialect.name if db.bind is not None else "sqlite"
+    period_expr = _period_expr(mode, dialect_name)
 
     period_rows = (
         base_query.group_by(period_expr, Operation.kind)
