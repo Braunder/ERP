@@ -21,6 +21,15 @@ PAYMENT_METHOD_LABELS = {
 }
 
 
+def _as_decimal(value) -> Decimal:
+    """Нормализует сумму к Decimal даже при пустой выборке или int/float."""
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
 def _period_mode(date_from: date | None, date_to: date | None) -> str:
     """Выбирает режим группировки по датам: day / week / month."""
     if date_from and date_to:
@@ -84,14 +93,14 @@ async def api_stats_summary(
     if date_to:
         query = query.filter(Operation.date <= date_to)
 
-    income = (
+    income = _as_decimal(
         query.filter(Operation.kind == "income")
-        .with_entities(func.coalesce(func.sum(Operation.amount), 0))
+        .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
         .scalar()
     )
-    expense = (
+    expense = _as_decimal(
         query.filter(Operation.kind == "expense")
-        .with_entities(func.coalesce(func.sum(Operation.amount), 0))
+        .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
         .scalar()
     )
 
@@ -117,7 +126,7 @@ async def api_stats_summary(
                 category_id=row.category_id,
                 category_name=row.category_name,
                 kind=row.kind,
-                total=row.total,
+                total=_as_decimal(row.total),
             )
             for row in category_totals
         ],
@@ -143,12 +152,12 @@ async def api_stats_data(
     )
 
     # Итоги: доход/расход/баланс с учётом фильтров
-    income = (
+    income = _as_decimal(
         base_query.filter(Operation.kind == "income")
         .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
         .scalar()
     )
-    expense = (
+    expense = _as_decimal(
         base_query.filter(Operation.kind == "expense")
         .with_entities(func.coalesce(func.sum(Operation.amount), Decimal("0")))
         .scalar()
@@ -178,7 +187,7 @@ async def api_stats_data(
     period_map: dict[str, dict[str, Decimal]] = {}
     for row in period_rows:
         period_map.setdefault(row.period, {"income": Decimal("0"), "expense": Decimal("0")})
-        period_map[row.period][row.kind] = row.amount
+        period_map[row.period][row.kind] = _as_decimal(row.amount)
 
     by_period = [
         {
@@ -212,7 +221,7 @@ async def api_stats_data(
         {
             "category": row.category,
             "kind": row.kind,
-            "amount": str(row.amount.quantize(Decimal("0.01"))),
+            "amount": str(_as_decimal(row.amount).quantize(Decimal("0.01"))),
         }
         for row in category_rows
     ]
@@ -240,7 +249,7 @@ async def api_stats_data(
         {
             "payment_method": row.payment_method,
             "label": PAYMENT_METHOD_LABELS.get(row.payment_method, row.payment_method),
-            "amount": str(row.amount.quantize(Decimal("0.01"))),
+            "amount": str(_as_decimal(row.amount).quantize(Decimal("0.01"))),
         }
         for row in payment_rows
     ]

@@ -22,6 +22,21 @@ def test_stats_page(client):
     assert "Графики" in response.text
 
 
+def test_api_stats_data_empty_dataset(client):
+    client.post("/login", data={"password": "admin"})
+
+    response = client.get("/api/stats/data?kind=all")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["totals"]["income"] == "0.00"
+    assert data["totals"]["expense"] == "0.00"
+    assert data["totals"]["balance"] == "0.00"
+    assert data["by_period"] == []
+    assert data["by_category"] == []
+    assert data["by_payment"] == []
+
+
 def test_api_stats_data_structure(client):
     client.post("/login", data={"password": "admin"})
 
