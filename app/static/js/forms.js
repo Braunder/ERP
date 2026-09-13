@@ -44,14 +44,12 @@
         const currentValue = categorySelect.value;
         categorySelect.innerHTML = '<option value="">—</option>';
         categoryTree.forEach((cat) => {
-            // Показываем только корневые категории (без дочерних) в основном списке
-            if (cat.children && cat.children.length > 0) {
-                return; // пропускаем категории с детьми — они в подкатегории
-            }
+            // Показываем все корневые категории; родительские категории
+            // с дочерними остаются доступными в основном списке.
             const option = document.createElement("option");
             option.value = cat.id;
             option.textContent = cat.name;
-            option.dataset.hasChildren = false;
+            option.dataset.hasChildren = Boolean(cat.children && cat.children.length);
             categorySelect.appendChild(option);
         });
         categorySelect.value = currentValue;

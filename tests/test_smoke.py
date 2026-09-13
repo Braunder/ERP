@@ -1,6 +1,15 @@
 """Дымовые тесты основных сценариев."""
 
 import re
+from pathlib import Path
+
+
+def test_operation_form_keeps_parent_categories_visible():
+    forms_js = Path(__file__).resolve().parents[1] / "app" / "static" / "js" / "forms.js"
+    source = forms_js.read_text(encoding="utf-8")
+
+    assert "if (cat.children && cat.children.length > 0)" not in source
+    assert "Показываем все корневые категории" in source
 
 
 def test_health(client):
