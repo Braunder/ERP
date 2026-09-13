@@ -7,106 +7,121 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
         body {
-            background: #f4f7fb;
+            background: linear-gradient(180deg, #f5f8ff 0%, #eef4fb 100%);
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #1f2937;
         }
 
-        .help-page {
+        .help-shell {
             max-width: 1100px;
             margin: 32px auto 80px;
-            background: white;
-            border: 1px solid #dfe7f1;
-            border-radius: 14px;
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-            padding: 32px 28px;
+            padding: 0 18px;
         }
 
-        .help-page h1, .help-page h2, .help-page h3 {
-            color: #1f2937;
-            margin-top: 1.5em;
-            margin-bottom: 0.6em;
+        .help-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #2563eb 100%);
+            color: white;
+            border-radius: 18px 18px 0 0;
+            padding: 28px 28px 24px;
+            box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
         }
 
-        .help-page h1 {
+        .help-header h1 {
+            margin: 0;
             font-size: 2rem;
-            margin-top: 0;
         }
 
-        .help-page h2 {
-            font-size: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.3rem;
+        .help-header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
         }
 
-        .help-page h3 {
-            font-size: 1.15rem;
+        .help-content {
+            background: white;
+            border-radius: 0 0 18px 18px;
+            border: 1px solid #dfe7f1;
+            border-top: none;
+            padding: 24px 28px 40px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
         }
 
-        .help-page p,
-        .help-page li,
-        .help-page blockquote {
+        .help-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 20px 22px;
+            margin-bottom: 18px;
+        }
+
+        .help-card h2 {
+            margin: 0 0 12px;
+            font-size: 1.3rem;
+            color: #0f172a;
+        }
+
+        .help-card ul {
+            margin: 0;
+            padding-left: 20px;
             color: #374151;
-            font-size: 1rem;
             line-height: 1.7;
         }
 
-        .help-page ul,
-        .help-page ol {
-            padding-left: 1.4rem;
-            margin: 0.8rem 0 1rem;
+        li + li {
+            margin-top: 6px;
         }
 
-        .help-page blockquote {
-            margin: 1rem 0;
-            padding: 0.8rem 1rem;
-            background: #f8fafc;
-            border-left: 4px solid #0d6efd;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .help-page hr {
-            border: none;
-            border-top: 1px solid #e5e7eb;
-            margin: 1.5rem 0;
-        }
-
-        .help-page a {
-            color: #0d6efd;
-            text-decoration: none;
-        }
-
-        .help-page a:hover {
-            text-decoration: underline;
-        }
-
-        .help-page img {
-            max-width: 100%;
-            border: 1px solid #dfe7f1;
-            border-radius: 10px;
-            margin: 0.8rem 0;
-            display: block;
-        }
-
-        .help-page figure {
-            margin: 1rem 0;
-        }
-
-        .help-page figcaption {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
+        .quick-badge {
+            display: inline-block;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #e0ecff;
+            color: #1d4ed8;
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
         @media (max-width: 768px) {
-            .help-page {
-                padding: 20px 16px;
-                margin: 16px 12px 80px;
+            .help-shell {
+                padding: 0 10px;
+                margin-top: 20px;
+            }
+
+            .help-header,
+            .help-content {
+                padding-left: 16px;
+                padding-right: 16px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="help-page">
-        {{ content | safe }}
+    <div class="help-shell">
+        <header class="help-header">
+            <h1>Помощь по ERP</h1>
+            <p>Короткая памятка по работе в системе: операции, категории, статистика, Google Таблица и бэкапы.</p>
+        </header>
+
+        <main class="help-content">
+            <div class="quick-badge">Вход</div>
+            <div class="quick-badge">Операции</div>
+            <div class="quick-badge">Статистика</div>
+            <div class="quick-badge">Таблица</div>
+            <div class="quick-badge">Бэкапы</div>
+
+            {% for section in sections %}
+                <section class="help-card">
+                    <h2>{{ section.title }}</h2>
+                    <ul>
+                        {% for item in section.items %}
+                            <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endfor %}
+        </main>
     </div>
 </body>
 </html>

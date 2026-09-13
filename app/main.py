@@ -1,6 +1,5 @@
 """Точка входа FastAPI: middleware, роутеры, события."""
 import logging
-import re
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -79,93 +78,76 @@ app.include_router(sync.router)
 app.include_router(backups.router)
 
 
-def _inline_markdown(text: str) -> str:
-    text = re.sub(r"\[(.+?)\]\((https?://[^)]+|[^)]+)\)", r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>', text)
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
-    return text.strip()
-
-
-def _markdown_to_html(markdown_text: str) -> str:
-    parts: list[str] = []
-    lines = markdown_text.splitlines()
-    i = 0
-
-    while i < len(lines):
-        line = lines[i].rstrip()
-
-        if not line.strip():
-            i += 1
-            continue
-
-        if line.startswith("# "):
-            parts.append(f"<h1>{_inline_markdown(line[2:])}</h1>")
-            i += 1
-            continue
-
-        if line.startswith("## "):
-            parts.append(f"<h2>{_inline_markdown(line[3:])}</h2>")
-            i += 1
-            continue
-
-        if line.startswith("### "):
-            parts.append(f"<h3>{_inline_markdown(line[4:])}</h3>")
-            i += 1
-            continue
-
-        if line.startswith("---"):
-            parts.append("<hr>")
-            i += 1
-            continue
-
-        if line.startswith("> "):
-            parts.append(f"<blockquote>{_inline_markdown(line[2:])}</blockquote>")
-            i += 1
-            continue
-
-        if line.startswith("!") and "![" in line and "](" in line:
-            match = re.search(r"!\[(.*?)\]\((.*?)\)", line)
-            if match:
-                alt, src = match.groups()
-                image_src = src if src.startswith("http") else f"/{src.lstrip('/')}"
-                parts.append(f'<figure class="help-figure"><img src="{image_src}" alt="{alt}"><figcaption>{alt}</figcaption></figure>')
-                i += 1
-                continue
-
-        if line.startswith("- ") or re.match(r"^\d+\. ", line):
-            items = []
-            while i < len(lines) and (lines[i].startswith("- ") or re.match(r"^\d+\. ", lines[i])):
-                item_line = lines[i].lstrip("- ").strip()
-                item_line = re.sub(r"^\d+\. ", "", item_line)
-                items.append(_inline_markdown(item_line))
-                i += 1
-            tag = "ul" if line.startswith("- ") else "ol"
-            parts.append(f"<{tag}>" + "".join(f"<li>{item}</li>" for item in items) + f"</{tag}>")
-            continue
-
-        para_lines = [line]
-        while i + 1 < len(lines) and not lines[i + 1].startswith(("# ", "## ", "### ", "---", "> ", "!", "- ", "* ")) and lines[i + 1].strip():
-            i += 1
-            para_lines.append(lines[i])
-
-        paragraph = " ".join(part.strip() for part in para_lines if part.strip())
-        if paragraph:
-            parts.append(f"<p>{_inline_markdown(paragraph)}</p>")
-        i += 1
-
-    return "\n".join(parts)
+HELP_SECTIONS = [
+    {
+        "title": "Вход в систему",
+        "items": [
+            "Откройте ссылку проекта и войдите под своим логином и паролем.",
+            "После входа открывается главное меню с разделами: Операции, Категории, Поставщики, Сотрудники, Продукты, Графики, Синхронизация и Бэкапы.",
+        ],
+    },
+    {
+        "title": "Как работать с операциями",
+        "items": [
+            "Откройте раздел Операции и нажмите «Новая операция».",
+            "Заполните дату, тип операции, категорию, сумму и комментарий.",
+            "Если категория требует доп. поля, заполните их перед сохранением.",
+            "Проверяйте категорию до сохранения — это влияет на отчёты и графики.",
+        ],
+    },
+    {
+        "title": "Справочники",
+        "items": [
+            "Категории — для группировки доходов и расходов.",
+            "Поставщики — для учёта оплат и закупок.",
+            "Сотрудники — для ответственных лиц и участников операций.",
+            "Продукты — для товаров и позиций, которые используются в сделках.",
+        ],
+    },
+    {
+        "title": "Статистика и графики",
+        "items": [
+            "Раздел Графики показывает общий доход, расход и баланс.",
+            "Фильтры позволяют смотреть данные по типу операции, категории, периоду и способу оплаты.",
+            "Если данных нет, система показывает пустое состояние, а не падает с ошибкой.",
+        ],
+    },
+    {
+        "title": "Google Таблица",
+        "items": [
+            "В системе есть ссылка на Google Таблицу, где доступны сводные данные по операциям.",
+            "Важно проверять актуальность данных после синхронизации.",
+            "Листы таблицы помогают быстро сверять финансовую картину без ручного копирования.",
+        ],
+    },
+    {
+        "title": "Резервные копии",
+        "items": [
+            "Раздел Бэкапы позволяет сделать копию базы данных вручную.",
+            "Резервные копии нужны перед массовыми правками, восстановлением или после важных изменений.",
+            "Если что-то пошло не так, восстановление из копии помогает быстро вернуть данные.",
+        ],
+    },
+    {
+        "title": "Что делать, если есть проблема",
+        "items": [
+            "Проверьте, что система доступна по ссылке.",
+            "Проверьте фильтры, даты и выбранную категорию.",
+            "Если проблема с синхронизацией — проверьте доступ к Google Таблице.",
+            "Если данные не отображаются — посмотрите, есть ли по запросу запись в системе и актуальные даты.",
+        ],
+    },
+]
 
 
 @app.get("/help")
 async def help_page(request: Request):
-    instruction_file = APP_DIR.parent / "INSTRUCTION.md"
-    markdown_text = instruction_file.read_text(encoding="utf-8") if instruction_file.exists() else "# Помощь\n\nИнструкция пока недоступна."
     return templates.TemplateResponse(
         "help.html",
         {
             "request": request,
-            "content": _markdown_to_html(markdown_text),
             "title": "Помощь",
+            "sections": HELP_SECTIONS,
         },
     )
 
