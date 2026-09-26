@@ -136,6 +136,32 @@ def test_report_matrix_shape(client):
     assert len(matrix) > 2
 
 
+def test_revenue_total_percent_is_not_circular(client):
+    client.post("/login", data={"password": "admin"})
+
+    lavka_id = _find_category_id(client, "income", "Лавка")
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-08-01",
+            "kind": "income",
+            "category_id": lavka_id,
+            "amount": "250.00",
+            "payment_method": "cash",
+        },
+    )
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+        matrix = report_to_matrix(report)
+    finally:
+        db.close()
+
+    revenue_row = next(row for row in matrix if row[0] == "Выручка всего")
+    assert revenue_row[2] == 1
+
+
 def test_investment_tab_and_report_row(client):
     client.post("/login", data={"password": "admin"})
 

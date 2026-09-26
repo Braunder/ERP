@@ -493,10 +493,13 @@ def report_to_matrix(report: ReportData) -> list[list]:
         for i, val in enumerate(row.values):
             # Столбец суммы месяца i (1-based): B, D, F, ...
             sum_col_letter = _col_letter(2 + i * 2)
+            percent_col_letter = _col_letter(3 + i * 2)
             if val.raw:
                 line.append(float(val.amount))
                 if row.skip_percent:
                     line.append("")
+                elif row.label == "Выручка всего":
+                    line.append("1")
                 else:
                     # Живая формула: доля от выручки этого месяца.
                     # Пересчитывается автоматически при изменении сумм в таблице.
