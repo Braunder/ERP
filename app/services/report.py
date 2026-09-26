@@ -502,9 +502,10 @@ def report_to_matrix(report: ReportData) -> list[list]:
                     line.append("1")
                 else:
                     # Живая формула: доля от выручки этого месяца.
-                    # Пересчитывается автоматически при изменении сумм в таблице.
+                    # Сначала проверяем нулевую/пустую выручку, чтобы не получить
+                    # #ERROR! / #DIV/0! в Google Sheets при отсутствии доходов.
                     line.append(
-                        f'=IFERROR({sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW},0)'
+                        f'=IFERROR(IF({sum_col_letter}${REVENUE_ROW}=0,0,{sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW}),0)'
                     )
             else:
                 line.append("")
