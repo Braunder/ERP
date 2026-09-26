@@ -505,7 +505,7 @@ def report_to_matrix(report: ReportData) -> list[list]:
                     # Сначала проверяем нулевую/пустую выручку, чтобы не получить
                     # #ERROR! / #DIV/0! в Google Sheets при отсутствии доходов.
                     line.append(
-                        f'=IFERROR(IF({sum_col_letter}${REVENUE_ROW}=0,0,{sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW}),0)'
+                        f'=IFERROR(IF({sum_col_letter}${REVENUE_ROW}=0;0;{sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW});0)'
                     )
             else:
                 line.append("")
