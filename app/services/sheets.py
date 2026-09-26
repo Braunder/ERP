@@ -283,7 +283,7 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         operations_worksheet.freeze(rows=2)
         operations_worksheet.set_basic_filter()
 
-        operations_count = len(operations_matrix) - 2
+        operations_count = max(0, len(operations_matrix) - 2)
 
         return {
             "synced": operations_count,
