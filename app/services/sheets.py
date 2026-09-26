@@ -1,4 +1,3 @@
-# app\services\sheets.py
 """Сервис синхронизации операций с Google Sheets в формате отчёта P&L."""
 import json
 import logging
@@ -21,6 +20,15 @@ PAYMENT_METHOD_LABELS = {
 
 REPORT_SHEET_TITLE = "Отчет"
 OPERATIONS_SHEET_TITLE = "Операции"
+
+
+def _safe_iso(value, timespec: str | None = None) -> str:
+    """Безопасно сериализует date/datetime, не ломая выгрузку из-за NULL."""
+    if value is None:
+        return ""
+    if timespec is not None and hasattr(value, "isoformat"):
+        return value.isoformat(timespec=timespec)
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 def get_gsheets_client() -> gspread.Client:
@@ -193,7 +201,7 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
         logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 
 
-def _build_operations_matrix(db: Session) -> list[list[str]]:
+def _build_operations_matrix(db: Session) -> list[list[object]]:
     """Возвращает матрицу для листа с полным перечнем операций."""
     operations = (
         db.query(Operation)
@@ -222,7 +230,7 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
         "Создана",
         "Обновлена",
     ]
-    rows: list[list[str]] = [headers]
+    rows: list[list[object]] = [headers]
 
     for operation in operations:
         category_name = operation.category.name if operation.category else ""
@@ -230,19 +238,19 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
         rows.append(
             [
                 str(operation.id),
-                operation.date.isoformat(),
+                _safe_iso(operation.date),
                 "Доход" if operation.kind == "income" else "Расход",
                 category_name,
                 parent_name,
-                str(operation.amount),
+                float(operation.amount or 0),
                 operation.comment or "",
                 str(operation.guests_count) if operation.guests_count is not None else "",
                 PAYMENT_METHOD_LABELS.get(operation.payment_method, operation.payment_method or ""),
                 operation.supplier.name if operation.supplier else "",
                 operation.employee.name if operation.employee else "",
                 operation.responsible or "",
-                operation.created_at.isoformat(timespec="seconds"),
-                operation.updated_at.isoformat(timespec="seconds"),
+                _safe_iso(operation.created_at, timespec="seconds"),
+                _safe_iso(operation.updated_at, timespec="seconds"),
             ]
         )
 
@@ -256,53 +264,107 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
 
 
 def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
-    """Выгружает отчёт P&L и все операции в Google Таблицу.
+    """Выгружает P&L и полный список операций в Google Sheets.
 
-    Возвращает словарь с результатами синхронизации.
+    Две выгрузки независимы: ошибка P&L не блокирует лист «Операции»
+    и наоборот. Если одна из них завершилась ошибкой, исключение
+    поднимается после попытки второй выгрузки, чтобы вызывающий код
+    корректно показал неуспешную синхронизацию.
     """
     spreadsheet_id = spreadsheet_id or settings.GOOGLE_SPREADSHEET_ID
     if not spreadsheet_id:
         raise ValueError("GOOGLE_SPREADSHEET_ID не настроен")
 
+    client = get_gsheets_client()
+    spreadsheet = client.open_by_key(spreadsheet_id)
+
+    # Сначала полностью строим обе матрицы в памяти. Если проблема в БД
+    # или данных одной выгрузки, вторая всё равно сможет быть отправлена.
+    report = None
+    report_matrix = None
+    operations_matrix = None
+    errors: list[str] = []
+
     try:
-        client = get_gsheets_client()
-        spreadsheet = client.open_by_key(spreadsheet_id)
-
         report = build_report(db)
-        matrix = report_to_matrix(report)
+        report_matrix = report_to_matrix(report)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Не удалось построить отчёт P&L")
+        errors.append(f"Отчёт P&L: {exc}")
 
-        report_worksheet = _get_or_create_worksheet(spreadsheet, REPORT_SHEET_TITLE)
-        report_worksheet.clear()
-        report_worksheet.update(matrix, value_input_option="USER_ENTERED")
-        _format_report_sheet(report_worksheet, report, matrix)
-
+    try:
         operations_matrix = _build_operations_matrix(db)
-        operations_worksheet = _get_or_create_worksheet(spreadsheet, OPERATIONS_SHEET_TITLE)
-        operations_worksheet.clear()
-        operations_worksheet.update(operations_matrix, value_input_option="USER_ENTERED")
-        operations_worksheet.freeze(rows=2)
-        operations_worksheet.set_basic_filter()
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Не удалось построить выгрузку операций")
+        errors.append(f"Операции: {exc}")
 
+    report_synced = False
+    operations_synced = False
+
+    # Записываем отчёт независимо от результата подготовки операций.
+    if report is not None and report_matrix is not None:
+        try:
+            report_worksheet = _get_or_create_worksheet(
+                spreadsheet, REPORT_SHEET_TITLE
+            )
+            report_worksheet.clear()
+            report_worksheet.update(report_matrix, value_input_option="USER_ENTERED")
+            _format_report_sheet(report_worksheet, report, report_matrix)
+            report_synced = True
+        except gspread.exceptions.APIError as exc:
+            logger.exception("Ошибка Google Sheets API при записи отчёта")
+            errors.append(f"Отчёт P&L: ошибка Google Sheets API: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ошибка при записи отчёта P&L")
+            errors.append(f"Отчёт P&L: {exc}")
+
+    # Операции записываем независимо от результата отчёта.
+    if operations_matrix is not None:
+        try:
+            operations_worksheet = _get_or_create_worksheet(
+                spreadsheet, OPERATIONS_SHEET_TITLE
+            )
+
+            # Старый фильтр может мешать повторному set_basic_filter.
+            try:
+                operations_worksheet.clear_basic_filter()
+            except Exception:  # noqa: BLE001
+                pass
+
+            operations_worksheet.clear()
+            operations_worksheet.update(
+                operations_matrix,
+                value_input_option="USER_ENTERED",
+            )
+            operations_worksheet.freeze(rows=2)
+            operations_worksheet.set_basic_filter()
+            operations_synced = True
+        except gspread.exceptions.APIError as exc:
+            logger.exception("Ошибка Google Sheets API при записи операций")
+            errors.append(f"Операции: ошибка Google Sheets API: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ошибка при записи операций")
+            errors.append(f"Операции: {exc}")
+
+    operations_count = 0
+    if operations_matrix is not None:
+        # Заголовок + пустая строка фильтра не являются операциями.
         operations_count = max(0, len(operations_matrix) - 2)
 
-        return {
-            "synced": operations_count,
-            "report_rows": sum(1 for _ in matrix) - 2,
-            "operations_rows": operations_count,
-            "spreadsheet_id": spreadsheet_id,
-            "sheet_title": REPORT_SHEET_TITLE,
-            "operations_sheet_title": OPERATIONS_SHEET_TITLE,
-            "months": report.months,
-        }
+    result = {
+        "synced": operations_count if operations_synced else 0,
+        "report_rows": max(0, len(report_matrix) - 2) if report_matrix is not None else 0,
+        "operations_rows": operations_count if operations_synced else 0,
+        "spreadsheet_id": spreadsheet_id,
+        "sheet_title": REPORT_SHEET_TITLE,
+        "operations_sheet_title": OPERATIONS_SHEET_TITLE,
+        "months": report.months if report is not None else [],
+        "report_synced": report_synced,
+        "operations_synced": operations_synced,
+        "errors": errors,
+    }
 
-    except gspread.exceptions.APIError as exc:
-        logger.exception("Ошибка Google Sheets API")
-        raise RuntimeError(f"Ошибка Google Sheets API: {exc}") from exc
-    except RuntimeError:
-        # Уже осмысленное сообщение из get_gsheets_client — пробрасываем как есть,
-        # не оборачивая повторно в общий "Ошибка синхронизации: ...".
-        logger.exception("Ошибка синхронизации с Google Sheets")
-        raise
-    except Exception as exc:
-        logger.exception("Ошибка синхронизации с Google Sheets")
-        raise RuntimeError(f"Ошибка синхронизации: {exc}") from exc
+    if errors:
+        raise RuntimeError("Синхронизация завершена с ошибками: " + " | ".join(errors))
+
+    return result

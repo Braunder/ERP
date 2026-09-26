@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import Category, Investment, Operation, ReportGroup
+from app.models import Category, Employee, Investment, Operation, ReportGroup
 
 MONTH_NAMES = [
     "январь",
@@ -96,6 +96,7 @@ def _collect_operations(db: Session) -> list[Operation]:
     return (
         db.query(Operation)
         .join(Category)
+        .outerjoin(Employee)
         .order_by(Operation.date)
         .all()
     )
@@ -121,11 +122,11 @@ def _aggregate_investments(
 def _aggregate(
     operations: list[Operation],
     months: list[tuple[int, int, str]],
-) -> tuple[list[Decimal], dict, dict, list[Decimal]]:
-    """Агрегирует суммы по месяцам, группам отчёта и категории.
+) -> tuple[list[Decimal], dict, dict, dict, list[Decimal]]:
+    """Агрегирует суммы по месяцам, группам и категориям.
 
-    Отдельно учитывает расходы без группы отчёта, чтобы они не выпадали
-    из расчёта прибыли.
+    Возвращает также расходы без группы отчёта, чтобы они не терялись
+    при расчёте прибыли.
     """
     month_index = {(y, m): i for i, (y, m, _) in enumerate(months)}
     n = len(months)
@@ -134,7 +135,8 @@ def _aggregate(
     revenue: list[Decimal] = [Decimal("0") for _ in range(n)]
     # by_group[group_id][month_idx] = Decimal
     by_group: dict[int, list[Decimal]] = defaultdict(lambda: [Decimal("0") for _ in range(n)])
-    # Расходы без привязки к группе отчёта — учитываются в прибыли.
+    # Расходы без группы отчёта не отображаются отдельной строкой,
+    # но обязательно учитываются в прибыли.
     ungrouped_expenses: list[Decimal] = [Decimal("0") for _ in range(n)]
     # by_group_category[group_id][category_name][month_idx] = Decimal
     by_group_category: dict[int, dict[str, list[Decimal]]] = defaultdict(
@@ -156,7 +158,6 @@ def _aggregate(
             by_group[group_id][idx] += amount
             by_group_category[group_id][op.category.name][idx] += amount
         elif op.kind == "expense":
-            # Расход без группы всё равно должен уменьшать прибыль.
             ungrouped_expenses[idx] += amount
 
     return revenue, by_group, by_group_category, ungrouped_expenses
@@ -231,6 +232,7 @@ def _group_row(
                 values=sub_values,
             )
         )
+
 
     return row
 
@@ -317,8 +319,8 @@ def build_report(db: Session) -> ReportData:
         for i in range(n):
             totals[i] += vals[i]
 
-    # Выручка: строка должна существовать всегда, даже если выручка нулевая.
-    # Это гарантирует стабильное положение знаменателя для процентных формул.
+    # Выручка: строка всегда должна быть первой строкой данных.
+    # Это позволяет формулам процентов стабильно ссылаться на строку 3.
     rows.append(
         _section_total_row("revenue", "Выручка всего", revenue, months, revenue, "yellow")
     )
@@ -353,7 +355,7 @@ def build_report(db: Session) -> ReportData:
         n,
     )
 
-    # Налоги и сборы — отдельная секция, а не часть «Других групп».
+    # Налоги и сборы - отдельная секция, а не часть «Других групп».
     taxes_totals = section_totals.get("taxes", [Decimal("0") for _ in range(n)])
     _append_section(
         rows,
@@ -367,36 +369,47 @@ def build_report(db: Session) -> ReportData:
         n,
     )
 
-    # Прочие группы — только секции, которые действительно не относятся
-    # к revenue/direct/overhead/taxes.
-    other_section_rows = []
-    excluded_sections = {"revenue", "direct", "overhead", "taxes"}
+    # Только неизвестные/прочие секции попадают в «Другие группы».
+    other_section_rows: list[ReportRow] = []
+    known_sections = {"revenue", "direct", "overhead", "taxes"}
     for section in sorted(rows_by_section):
-        if section in excluded_sections:
+        if section in known_sections:
             continue
         other_section_rows.extend(rows_by_section.get(section, []))
 
     if other_section_rows:
         other_totals = [Decimal("0") for _ in range(n)]
         for section in rows_by_section:
-            if section in excluded_sections:
+            if section in known_sections:
                 continue
+            section_amounts = section_totals.get(section, [Decimal("0") for _ in range(n)])
             for i in range(n):
-                other_totals[i] += section_totals.get(section, [Decimal("0") for _ in range(n)])[i]
-        rows.append(
-            _section_total_row("other", "Другие группы", other_totals, months, revenue, "blue")
+                other_totals[i] += section_amounts[i]
+        _append_section(
+            rows,
+            "other",
+            "Другие группы",
+            other_section_rows,
+            other_totals,
+            months,
+            revenue,
+            "blue",
+            n,
         )
-        rows.extend(other_section_rows)
-        rows.append(_blank_separator("other", n))
 
     # Прибыль уже считается по всем расходам, включая налоги и прочее.
     # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.
-    other_total_all = ungrouped_expenses.copy()
+    other_total_all = [Decimal("0") for _ in range(n)]
     for section, totals in section_totals.items():
         if section == "revenue":
             continue
         for i in range(n):
             other_total_all[i] += totals[i]
+
+    # Расходы без группы отчёта не видны в P&L, но не должны исчезать
+    # из расчёта прибыли.
+    for i in range(n):
+        other_total_all[i] += ungrouped_expenses[i]
 
     profit_amounts = [revenue[i] - other_total_all[i] for i in range(n)]
 
@@ -412,9 +425,10 @@ def build_report(db: Session) -> ReportData:
         )
     )
 
-    # Прибыль итого — сумма прибыли за все месяцы, а не сумма промежуточных
-    # накопительных значений.
-    cumulative_first = [sum(profit_amounts, start=Decimal("0"))]
+    # Прибыль итого = фактическая сумма прибыли за весь период.
+    # В каждой строке отчёта должно быть ровно столько значений,
+    # сколько месяцев в заголовке; итог показываем только в первом месяце.
+    cumulative_first = [sum(profit_amounts, start=Decimal("0"))] + [Decimal("0")] * max(0, n - 1)
     rows.append(
         ReportRow(
             label="Прибыль итого",
@@ -428,7 +442,7 @@ def build_report(db: Session) -> ReportData:
 
     # Инвестиции вводятся на отдельной вкладке и попадают в отчёт по месяцам.
     # Общая сумма — в колонке B.
-    investment_first = [sum(investment_amounts, start=Decimal("0"))]
+    investment_first = [sum(investment_amounts, start=Decimal("0"))] + [Decimal("0")] * max(0, n - 1)
     rows.append(
         ReportRow(
             label="Инвестиции",
@@ -461,8 +475,8 @@ def report_to_matrix(report: ReportData) -> list[list]:
 
     matrix = [header1, header2]
 
-    # Строка «Выручка всего» в таблице (данные начинаются с 3-й строки).
-    # Используется как знаменатель в формулах процентов.
+    # Строка «Выручка всего» всегда является первой строкой данных (строка 3).
+    # Формулы процентов защищены IFERROR на случай ручного редактирования таблицы.
     REVENUE_ROW = 3
 
     def _col_letter(col: int) -> str:
