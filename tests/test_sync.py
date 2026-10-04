@@ -41,6 +41,13 @@ def test_sync_default_schedule_is_hourly():
     assert settings.SYNC_SCHEDULE == "0 * * * *"
 
 
+def test_scheduler_cron_triggers_use_moscow_timezone():
+    from app.services.scheduler import _cron_trigger
+
+    assert _cron_trigger(settings.SYNC_SCHEDULE).timezone.key == "Europe/Moscow"
+    assert _cron_trigger(settings.BACKUP_SCHEDULE).timezone.key == "Europe/Moscow"
+
+
 def test_sync_exports_operations_sheet(client, monkeypatch):
     monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "test_spreadsheet_id")
     mock_gspread = _make_mock_gspread()

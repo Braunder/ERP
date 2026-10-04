@@ -1,5 +1,4 @@
 """Роутер управления резервными копиями БД."""
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -9,6 +8,7 @@ from starlette.templating import Jinja2Templates
 from app.config import settings
 from app.deps import get_db, require_auth
 from app.services.backup import backup_database, list_backups, restore_database
+from app.timezone import PROJECT_TIMEZONE
 
 router = APIRouter(tags=["backups"], dependencies=[Depends(require_auth)])
 templates = Jinja2Templates(directory="app/templates")
@@ -27,7 +27,7 @@ def _backup_to_dict(backup: Path) -> dict:
     stat = backup.stat()
     return {
         "filename": backup.name,
-        "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        "created_at": datetime.fromtimestamp(stat.st_mtime, tz=PROJECT_TIMEZONE).isoformat(),
         "size_bytes": stat.st_size,
     }
 

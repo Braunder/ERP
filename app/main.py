@@ -1,6 +1,7 @@
 """Точка входа FastAPI: middleware, роутеры, события."""
 import logging
 import sys
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from app.database import Base
 from app.routers import auth, backups, categories, employees, health, investments, operations, products, report_groups, stats, suppliers, sync
 from app.seed import seed_db
 from app.services import scheduler as scheduler_module
+from app.timezone import PROJECT_TIMEZONE
 
 import app.database as database_module
 
@@ -29,6 +31,9 @@ def _setup_logging() -> None:
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+    formatter.converter = lambda timestamp: datetime.fromtimestamp(
+        timestamp, PROJECT_TIMEZONE
+    ).timetuple()
 
     file_handler = RotatingFileHandler(
         log_file,

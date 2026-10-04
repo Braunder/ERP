@@ -3,11 +3,11 @@ import logging
 import os
 import shutil
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from app.config import BASE_DIR, settings
+from app.timezone import local_now
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def _backup_postgres_database(database_url: str) -> Path | None:
         logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S_%f")
     backup_path = backup_dir / f"app_{timestamp}.sql"
 
     try:
@@ -89,7 +89,7 @@ def _backup_dir() -> Path:
 def _parse_existing_backups(backup_dir: Path) -> list[Path]:
     """Возвращает существующие файлы бэкапов, отсортированные по имени (свежее — раньше).
 
-    Имя файла содержит UTC-метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
+    Имя файла содержит локальную метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
     лексикографический порядок совпадает с хронологическим.
     """
     if not backup_dir.exists():
@@ -127,7 +127,7 @@ def backup_database() -> Path | None:
         logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S_%f")
     backup_name = f"app_{timestamp}.db"
     backup_path = backup_dir / backup_name
 

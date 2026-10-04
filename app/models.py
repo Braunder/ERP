@@ -7,6 +7,7 @@ from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, Numer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.timezone import local_now_naive
 
 
 class ReportGroup(Base):
@@ -121,8 +122,15 @@ class Operation(Base):
     supplier_id: Mapped[Optional[int]] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
     employee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("employees.id"), nullable=True)
     responsible: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # для «Съели сами»: Ира/Илья
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=local_now_naive,
+        server_default=func.now(),
+        onupdate=local_now_naive,
+    )
 
     category: Mapped[Category] = relationship(back_populates="operations")
     supplier: Mapped[Optional[Supplier]] = relationship(back_populates="operations")
@@ -170,7 +178,9 @@ class ChangeLog(Base):
     entity_id: Mapped[int] = mapped_column(Integer)
     action: Mapped[str] = mapped_column(String(10))  # create/update/delete
     changes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
 
 
 class SyncLog(Base):
@@ -179,7 +189,9 @@ class SyncLog(Base):
     __tablename__ = "sync_log"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
     success: Mapped[bool]
     message: Mapped[str] = mapped_column(Text)
     details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

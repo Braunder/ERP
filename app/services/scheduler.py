@@ -1,8 +1,5 @@
 """Фоновый планировщик синхронизации с Google Sheets."""
 import logging
-from datetime import datetime
-
-import pytz
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -11,10 +8,15 @@ from app.config import settings
 from app.database import SessionLocal
 from app.services.backup import backup_database
 from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
+from app.timezone import PROJECT_TIMEZONE
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
+scheduler = AsyncIOScheduler(timezone=PROJECT_TIMEZONE)
+
+
+def _cron_trigger(schedule: str) -> CronTrigger:
+    return CronTrigger.from_crontab(schedule, timezone=PROJECT_TIMEZONE)
 
 
 def sync_job() -> None:
@@ -65,7 +67,7 @@ def setup_scheduler() -> None:
     if settings.SYNC_ENABLED and settings.GOOGLE_SPREADSHEET_ID:
         scheduler.add_job(
             sync_job,
-            CronTrigger.from_crontab(settings.SYNC_SCHEDULE),
+            _cron_trigger(settings.SYNC_SCHEDULE),
             id="sheets_sync",
             replace_existing=True,
         )
@@ -79,7 +81,7 @@ def setup_scheduler() -> None:
 
     scheduler.add_job(
         backup_job,
-        CronTrigger.from_crontab(settings.BACKUP_SCHEDULE),
+        _cron_trigger(settings.BACKUP_SCHEDULE),
         id="database_backup",
         replace_existing=True,
     )

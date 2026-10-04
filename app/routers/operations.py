@@ -13,6 +13,7 @@ from starlette.templating import Jinja2Templates
 from app.deps import get_db, require_auth
 from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Product, Supplier
 from app.schemas import OperationCreate, OperationRead
+from app.timezone import local_today
 
 
 PAYMENT_METHOD_LABELS = {
@@ -196,7 +197,7 @@ async def operation_new(request: Request, db: Session = Depends(get_db)):
             "employees": employees,
             "suppliers": suppliers,
             "payment_labels": PAYMENT_METHOD_LABELS,
-            "today": date.today().isoformat(),
+            "today": local_today().isoformat(),
         },
     )
 
@@ -260,7 +261,7 @@ async def operation_edit(
             "employees": employees,
             "suppliers": suppliers,
             "payment_labels": PAYMENT_METHOD_LABELS,
-            "today": date.today().isoformat(),
+            "today": local_today().isoformat(),
         },
     )
 

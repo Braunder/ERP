@@ -7,6 +7,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models import Category, Employee, Investment, Operation, ReportGroup
+from app.timezone import local_today
 
 MONTH_NAMES = [
     "январь",
@@ -79,7 +80,7 @@ def _month_label(year: int, month: int, years: set[int]) -> str:
 def _months_range(records: list[Operation | Investment]) -> list[tuple[int, int, str]]:
     """Возвращает список (year, month, label), отсортированный по хронологии."""
     if not records:
-        today = date.today()
+        today = local_today()
         return [(today.year, today.month, _month_label(today.year, today.month, {today.year}))]
 
     months_set: set[tuple[int, int]] = set()

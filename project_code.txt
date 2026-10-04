@@ -86,6 +86,7 @@ logs/
 # Переменные окружения и секреты
 .env
 gen-lang-client-*.json
+project_code.txt
 
 
 # alembic.ini
@@ -5386,7 +5387,6 @@ def restore_database(backup_path: Path) -> Path:
 
 
 # app\services\report.py
-# app\services\report.py
 """Генерация отчёта P&L по месяцам для Google Sheets."""
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -5511,8 +5511,12 @@ def _aggregate_investments(
 def _aggregate(
     operations: list[Operation],
     months: list[tuple[int, int, str]],
-) -> tuple[list[Decimal], dict, dict, dict]:
-    """Агрегирует суммы по месяцам, группам отчёта и сотрудникам."""
+) -> tuple[list[Decimal], dict, dict, dict, list[Decimal]]:
+    """Агрегирует суммы по месяцам, группам и категориям.
+
+    Возвращает также расходы без группы отчёта, чтобы они не терялись
+    при расчёте прибыли.
+    """
     month_index = {(y, m): i for i, (y, m, _) in enumerate(months)}
     n = len(months)
 
@@ -5520,10 +5524,9 @@ def _aggregate(
     revenue: list[Decimal] = [Decimal("0") for _ in range(n)]
     # by_group[group_id][month_idx] = Decimal
     by_group: dict[int, list[Decimal]] = defaultdict(lambda: [Decimal("0") for _ in range(n)])
-    # by_employee[group_id][employee_name][month_idx] = Decimal
-    by_employee: dict[int, dict[str, list[Decimal]]] = defaultdict(
-        lambda: defaultdict(lambda: [Decimal("0") for _ in range(n)])
-    )
+    # Расходы без группы отчёта не отображаются отдельной строкой,
+    # но обязательно учитываются в прибыли.
+    ungrouped_expenses: list[Decimal] = [Decimal("0") for _ in range(n)]
     # by_group_category[group_id][category_name][month_idx] = Decimal
     by_group_category: dict[int, dict[str, list[Decimal]]] = defaultdict(
         lambda: defaultdict(lambda: [Decimal("0") for _ in range(n)])
@@ -5543,10 +5546,10 @@ def _aggregate(
         if group_id:
             by_group[group_id][idx] += amount
             by_group_category[group_id][op.category.name][idx] += amount
-            if op.employee_id and op.employee:
-                by_employee[group_id][op.employee.name][idx] += amount
+        elif op.kind == "expense":
+            ungrouped_expenses[idx] += amount
 
-    return revenue, by_group, by_employee, by_group_category
+    return revenue, by_group, by_group_category, ungrouped_expenses
 
 
 def _calc_row(
@@ -5578,7 +5581,6 @@ def _group_row(
     revenue: list[Decimal],
     by_group: dict[int, list[Decimal]],
     by_group_category: dict[int, dict[str, list[Decimal]]],
-    by_employee: dict[int, dict[str, list[Decimal]]],
 ) -> ReportRow | None:
     """Строка группы отчёта с категориями внутри.
 
@@ -5620,19 +5622,6 @@ def _group_row(
             )
         )
 
-    # Разбивка по сотрудникам (например, «Съели сами»)
-    for employee_name in sorted(by_employee.get(group.id, {}).keys()):
-        emp_amounts = by_employee[group.id][employee_name]
-        if _is_zero(emp_amounts):
-            continue
-        row.subrows.append(
-            ReportRow(
-                label=f"👤 {employee_name}",
-                section=group.section,
-                level=2,
-                values=_calc_row(months, revenue, emp_amounts),
-            )
-        )
 
     return row
 
@@ -5690,7 +5679,7 @@ def build_report(db: Session) -> ReportData:
     operations = _collect_operations(db)
     investments = _collect_investments(db)
     months = _months_range([*operations, *investments])
-    revenue, by_group, by_employee, by_group_category = _aggregate(operations, months)
+    revenue, by_group, by_group_category, ungrouped_expenses = _aggregate(operations, months)
     investment_amounts = _aggregate_investments(investments, months)
     n = len(months)
 
@@ -5710,7 +5699,7 @@ def build_report(db: Session) -> ReportData:
 
     # Строки групп отчёта с категориями внутри; нулевые группы пропускаются
     for group in groups:
-        row = _group_row(group, months, revenue, by_group, by_group_category, by_employee)
+        row = _group_row(group, months, revenue, by_group, by_group_category)
         if row is None:
             continue
         rows_by_section[group.section].append(row)
@@ -5719,13 +5708,13 @@ def build_report(db: Session) -> ReportData:
         for i in range(n):
             totals[i] += vals[i]
 
-    # Выручка: заголовок секции + все группы дохода
-    if not _is_zero(revenue):
-        rows.append(
-            _section_total_row("revenue", "Выручка всего", revenue, months, revenue, "yellow")
-        )
-        rows.extend(rows_by_section.get("revenue", []))
-        rows.append(_blank_separator("revenue", n))
+    # Выручка: строка всегда должна быть первой строкой данных.
+    # Это позволяет формулам процентов стабильно ссылаться на строку 3.
+    rows.append(
+        _section_total_row("revenue", "Выручка всего", revenue, months, revenue, "yellow")
+    )
+    rows.extend(rows_by_section.get("revenue", []))
+    rows.append(_blank_separator("revenue", n))
 
     # Прямые расходы: заголовок секции + все группы прямых расходов
     direct_totals = section_totals.get("direct", [Decimal("0") for _ in range(n)])
@@ -5755,26 +5744,47 @@ def build_report(db: Session) -> ReportData:
         n,
     )
 
-    # Остальные группы отчёта (например, налоги и прочее)
-    other_section_rows = []
-    other_sections = {"revenue", "direct", "overhead"}
-    for section in sorted(rows_by_section, key=lambda s: (s not in {"other", "taxes"}, s)):
-        if section in other_sections:
+    # Налоги и сборы - отдельная секция, а не часть «Других групп».
+    taxes_totals = section_totals.get("taxes", [Decimal("0") for _ in range(n)])
+    _append_section(
+        rows,
+        "taxes",
+        "Налоги и сборы",
+        rows_by_section.get("taxes", []),
+        taxes_totals,
+        months,
+        revenue,
+        "blue",
+        n,
+    )
+
+    # Только неизвестные/прочие секции попадают в «Другие группы».
+    other_section_rows: list[ReportRow] = []
+    known_sections = {"revenue", "direct", "overhead", "taxes"}
+    for section in sorted(rows_by_section):
+        if section in known_sections:
             continue
         other_section_rows.extend(rows_by_section.get(section, []))
 
     if other_section_rows:
         other_totals = [Decimal("0") for _ in range(n)]
         for section in rows_by_section:
-            if section in other_sections:
+            if section in known_sections:
                 continue
+            section_amounts = section_totals.get(section, [Decimal("0") for _ in range(n)])
             for i in range(n):
-                other_totals[i] += section_totals.get(section, [Decimal("0") for _ in range(n)])[i]
-        rows.append(
-            _section_total_row("other", "Другие группы", other_totals, months, revenue, "blue")
+                other_totals[i] += section_amounts[i]
+        _append_section(
+            rows,
+            "other",
+            "Другие группы",
+            other_section_rows,
+            other_totals,
+            months,
+            revenue,
+            "blue",
+            n,
         )
-        rows.extend(other_section_rows)
-        rows.append(_blank_separator("other", n))
 
     # Прибыль уже считается по всем расходам, включая налоги и прочее.
     # Для этого вычитаем все секции, не относящиеся к доходам, из выручки.
@@ -5784,6 +5794,11 @@ def build_report(db: Session) -> ReportData:
             continue
         for i in range(n):
             other_total_all[i] += totals[i]
+
+    # Расходы без группы отчёта не видны в P&L, но не должны исчезать
+    # из расчёта прибыли.
+    for i in range(n):
+        other_total_all[i] += ungrouped_expenses[i]
 
     profit_amounts = [revenue[i] - other_total_all[i] for i in range(n)]
 
@@ -5799,14 +5814,10 @@ def build_report(db: Session) -> ReportData:
         )
     )
 
-    # Прибыль итого (накопительно)
-    cumulative = [Decimal("0") for _ in range(n)]
-    running = Decimal("0")
-    for i in range(n):
-        running += profit_amounts[i]
-        cumulative[i] = running
-    # Общая сумма за всё время — в колонке B (первый столбец данных)
-    cumulative_first = [sum(cumulative, start=Decimal("0"))]
+    # Прибыль итого = фактическая сумма прибыли за весь период.
+    # В каждой строке отчёта должно быть ровно столько значений,
+    # сколько месяцев в заголовке; итог показываем только в первом месяце.
+    cumulative_first = [sum(profit_amounts, start=Decimal("0"))] + [Decimal("0")] * max(0, n - 1)
     rows.append(
         ReportRow(
             label="Прибыль итого",
@@ -5820,7 +5831,7 @@ def build_report(db: Session) -> ReportData:
 
     # Инвестиции вводятся на отдельной вкладке и попадают в отчёт по месяцам.
     # Общая сумма — в колонке B.
-    investment_first = [sum(investment_amounts, start=Decimal("0"))]
+    investment_first = [sum(investment_amounts, start=Decimal("0"))] + [Decimal("0")] * max(0, n - 1)
     rows.append(
         ReportRow(
             label="Инвестиции",
@@ -5853,8 +5864,8 @@ def report_to_matrix(report: ReportData) -> list[list]:
 
     matrix = [header1, header2]
 
-    # Строка «Выручка всего» в таблице (данные начинаются с 3-й строки).
-    # Используется как знаменатель в формулах процентов.
+    # Строка «Выручка всего» всегда является первой строкой данных (строка 3).
+    # Формулы процентов защищены IFERROR на случай ручного редактирования таблицы.
     REVENUE_ROW = 3
 
     def _col_letter(col: int) -> str:
@@ -5871,14 +5882,20 @@ def report_to_matrix(report: ReportData) -> list[list]:
         for i, val in enumerate(row.values):
             # Столбец суммы месяца i (1-based): B, D, F, ...
             sum_col_letter = _col_letter(2 + i * 2)
+            percent_col_letter = _col_letter(3 + i * 2)
             if val.raw:
                 line.append(float(val.amount))
                 if row.skip_percent:
                     line.append("")
+                elif row.label == "Выручка всего":
+                    line.append("1")
                 else:
                     # Живая формула: доля от выручки этого месяца.
-                    # Пересчитывается автоматически при изменении сумм в таблице.
-                    line.append(str(f'={sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW}'))
+                    # Сначала проверяем нулевую/пустую выручку, чтобы не получить
+                    # #ERROR! / #DIV/0! в Google Sheets при отсутствии доходов.
+                    line.append(
+                        f'=IFERROR(IF({sum_col_letter}${REVENUE_ROW}=0;0;{sum_col_letter}{row_number}/{sum_col_letter}${REVENUE_ROW});0)'
+                    )
             else:
                 line.append("")
                 line.append("")
@@ -5890,7 +5907,6 @@ def report_to_matrix(report: ReportData) -> list[list]:
         append_row(row)
 
     return matrix
-
 
 # app\services\scheduler.py
 """Фоновый планировщик синхронизации с Google Sheets."""
@@ -5992,7 +6008,6 @@ def shutdown_scheduler() -> None:
 
 
 # app\services\sheets.py
-# app\services\sheets.py
 """Сервис синхронизации операций с Google Sheets в формате отчёта P&L."""
 import json
 import logging
@@ -6015,6 +6030,15 @@ PAYMENT_METHOD_LABELS = {
 
 REPORT_SHEET_TITLE = "Отчет"
 OPERATIONS_SHEET_TITLE = "Операции"
+
+
+def _safe_iso(value, timespec: str | None = None) -> str:
+    """Безопасно сериализует date/datetime, не ломая выгрузку из-за NULL."""
+    if value is None:
+        return ""
+    if timespec is not None and hasattr(value, "isoformat"):
+        return value.isoformat(timespec=timespec)
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
 
 
 def get_gsheets_client() -> gspread.Client:
@@ -6187,7 +6211,7 @@ def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
         logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 
 
-def _build_operations_matrix(db: Session) -> list[list[str]]:
+def _build_operations_matrix(db: Session) -> list[list[object]]:
     """Возвращает матрицу для листа с полным перечнем операций."""
     operations = (
         db.query(Operation)
@@ -6216,7 +6240,7 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
         "Создана",
         "Обновлена",
     ]
-    rows: list[list[str]] = [headers]
+    rows: list[list[object]] = [headers]
 
     for operation in operations:
         category_name = operation.category.name if operation.category else ""
@@ -6224,19 +6248,19 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
         rows.append(
             [
                 str(operation.id),
-                operation.date.isoformat(),
+                _safe_iso(operation.date),
                 "Доход" if operation.kind == "income" else "Расход",
                 category_name,
                 parent_name,
-                str(operation.amount),
+                float(operation.amount or 0),
                 operation.comment or "",
                 str(operation.guests_count) if operation.guests_count is not None else "",
                 PAYMENT_METHOD_LABELS.get(operation.payment_method, operation.payment_method or ""),
                 operation.supplier.name if operation.supplier else "",
                 operation.employee.name if operation.employee else "",
                 operation.responsible or "",
-                operation.created_at.isoformat(timespec="seconds"),
-                operation.updated_at.isoformat(timespec="seconds"),
+                _safe_iso(operation.created_at, timespec="seconds"),
+                _safe_iso(operation.updated_at, timespec="seconds"),
             ]
         )
 
@@ -6250,57 +6274,110 @@ def _build_operations_matrix(db: Session) -> list[list[str]]:
 
 
 def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
-    """Выгружает отчёт P&L и все операции в Google Таблицу.
+    """Выгружает P&L и полный список операций в Google Sheets.
 
-    Возвращает словарь с результатами синхронизации.
+    Две выгрузки независимы: ошибка P&L не блокирует лист «Операции»
+    и наоборот. Если одна из них завершилась ошибкой, исключение
+    поднимается после попытки второй выгрузки, чтобы вызывающий код
+    корректно показал неуспешную синхронизацию.
     """
     spreadsheet_id = spreadsheet_id or settings.GOOGLE_SPREADSHEET_ID
     if not spreadsheet_id:
         raise ValueError("GOOGLE_SPREADSHEET_ID не настроен")
 
+    client = get_gsheets_client()
+    spreadsheet = client.open_by_key(spreadsheet_id)
+
+    # Сначала полностью строим обе матрицы в памяти. Если проблема в БД
+    # или данных одной выгрузки, вторая всё равно сможет быть отправлена.
+    report = None
+    report_matrix = None
+    operations_matrix = None
+    errors: list[str] = []
+
     try:
-        client = get_gsheets_client()
-        spreadsheet = client.open_by_key(spreadsheet_id)
-
         report = build_report(db)
-        matrix = report_to_matrix(report)
+        report_matrix = report_to_matrix(report)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Не удалось построить отчёт P&L")
+        errors.append(f"Отчёт P&L: {exc}")
 
-        report_worksheet = _get_or_create_worksheet(spreadsheet, REPORT_SHEET_TITLE)
-        report_worksheet.clear()
-        report_worksheet.update(matrix, value_input_option="USER_ENTERED")
-        _format_report_sheet(report_worksheet, report, matrix)
-
+    try:
         operations_matrix = _build_operations_matrix(db)
-        operations_worksheet = _get_or_create_worksheet(spreadsheet, OPERATIONS_SHEET_TITLE)
-        operations_worksheet.clear()
-        operations_worksheet.update(operations_matrix, value_input_option="USER_ENTERED")
-        operations_worksheet.freeze(rows=2)
-        operations_worksheet.set_basic_filter()
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Не удалось построить выгрузку операций")
+        errors.append(f"Операции: {exc}")
 
-        operations_count = len(operations_matrix) - 2
+    report_synced = False
+    operations_synced = False
 
-        return {
-            "synced": operations_count,
-            "report_rows": sum(1 for _ in matrix) - 2,
-            "operations_rows": operations_count,
-            "spreadsheet_id": spreadsheet_id,
-            "sheet_title": REPORT_SHEET_TITLE,
-            "operations_sheet_title": OPERATIONS_SHEET_TITLE,
-            "months": report.months,
-        }
+    # Записываем отчёт независимо от результата подготовки операций.
+    if report is not None and report_matrix is not None:
+        try:
+            report_worksheet = _get_or_create_worksheet(
+                spreadsheet, REPORT_SHEET_TITLE
+            )
+            report_worksheet.clear()
+            report_worksheet.update(report_matrix, value_input_option="USER_ENTERED")
+            _format_report_sheet(report_worksheet, report, report_matrix)
+            report_synced = True
+        except gspread.exceptions.APIError as exc:
+            logger.exception("Ошибка Google Sheets API при записи отчёта")
+            errors.append(f"Отчёт P&L: ошибка Google Sheets API: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ошибка при записи отчёта P&L")
+            errors.append(f"Отчёт P&L: {exc}")
 
-    except gspread.exceptions.APIError as exc:
-        logger.exception("Ошибка Google Sheets API")
-        raise RuntimeError(f"Ошибка Google Sheets API: {exc}") from exc
-    except RuntimeError:
-        # Уже осмысленное сообщение из get_gsheets_client — пробрасываем как есть,
-        # не оборачивая повторно в общий "Ошибка синхронизации: ...".
-        logger.exception("Ошибка синхронизации с Google Sheets")
-        raise
-    except Exception as exc:
-        logger.exception("Ошибка синхронизации с Google Sheets")
-        raise RuntimeError(f"Ошибка синхронизации: {exc}") from exc
+    # Операции записываем независимо от результата отчёта.
+    if operations_matrix is not None:
+        try:
+            operations_worksheet = _get_or_create_worksheet(
+                spreadsheet, OPERATIONS_SHEET_TITLE
+            )
 
+            # Старый фильтр может мешать повторному set_basic_filter.
+            try:
+                operations_worksheet.clear_basic_filter()
+            except Exception:  # noqa: BLE001
+                pass
+
+            operations_worksheet.clear()
+            operations_worksheet.update(
+                operations_matrix,
+                value_input_option="USER_ENTERED",
+            )
+            operations_worksheet.freeze(rows=2)
+            operations_worksheet.set_basic_filter()
+            operations_synced = True
+        except gspread.exceptions.APIError as exc:
+            logger.exception("Ошибка Google Sheets API при записи операций")
+            errors.append(f"Операции: ошибка Google Sheets API: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ошибка при записи операций")
+            errors.append(f"Операции: {exc}")
+
+    operations_count = 0
+    if operations_matrix is not None:
+        # Заголовок + пустая строка фильтра не являются операциями.
+        operations_count = max(0, len(operations_matrix) - 2)
+
+    result = {
+        "synced": operations_count if operations_synced else 0,
+        "report_rows": max(0, len(report_matrix) - 2) if report_matrix is not None else 0,
+        "operations_rows": operations_count if operations_synced else 0,
+        "spreadsheet_id": spreadsheet_id,
+        "sheet_title": REPORT_SHEET_TITLE,
+        "operations_sheet_title": OPERATIONS_SHEET_TITLE,
+        "months": report.months if report is not None else [],
+        "report_synced": report_synced,
+        "operations_synced": operations_synced,
+        "errors": errors,
+    }
+
+    if errors:
+        raise RuntimeError("Синхронизация завершена с ошибками: " + " | ".join(errors))
+
+    return result
 
 # app\static\css\style.css
 :root {
@@ -7980,6 +8057,32 @@ def test_report_matrix_shape(client):
     assert matrix[1][2] == "%"
     # Хотя бы одна строка данных
     assert len(matrix) > 2
+
+
+def test_revenue_total_percent_is_not_circular(client):
+    client.post("/login", data={"password": "admin"})
+
+    lavka_id = _find_category_id(client, "income", "Лавка")
+    client.post(
+        "/api/operations",
+        json={
+            "date": "2024-08-01",
+            "kind": "income",
+            "category_id": lavka_id,
+            "amount": "250.00",
+            "payment_method": "cash",
+        },
+    )
+
+    db = database_module.SessionLocal()
+    try:
+        report = build_report(db)
+        matrix = report_to_matrix(report)
+    finally:
+        db.close()
+
+    revenue_row = next(row for row in matrix if row[0] == "Выручка всего")
+    assert revenue_row[2] == 1
 
 
 def test_investment_tab_and_report_row(client):
