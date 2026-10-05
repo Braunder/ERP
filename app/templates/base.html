@@ -9,10 +9,10 @@
 <body>
     <nav class="navbar">
         <a class="brand" href="/">ERP</a>
-        <button class="menu-toggle" type="button" aria-label="Меню" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+        <button class="menu-toggle" type="button" aria-label="Меню" aria-expanded="false" aria-controls="primary-navigation">
             ☰
         </button>
-        <ul class="nav-links">
+        <ul class="nav-links" id="primary-navigation">
             <li><a href="/operations">Операции</a></li>
             <li><a href="/investments">Инвестиции</a></li>
             <li><a href="/categories">Категории</a></li>

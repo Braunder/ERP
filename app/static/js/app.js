@@ -9,14 +9,23 @@ function confirmDelete() {
     const navLinks = document.querySelector(".nav-links");
 
     if (menuToggle && navLinks) {
+        const setMenuOpen = (isOpen) => {
+            navLinks.classList.toggle("open", isOpen);
+            menuToggle.setAttribute("aria-expanded", String(isOpen));
+        };
+
         menuToggle.addEventListener("click", (event) => {
             event.stopPropagation();
-            navLinks.classList.toggle("open");
+            setMenuOpen(!navLinks.classList.contains("open"));
         });
 
         document.addEventListener("click", (event) => {
-            if (navLinks.classList.contains("open") && !navLinks.contains(event.target) && event.target !== menuToggle) {
-                navLinks.classList.remove("open");
+            if (
+                navLinks.classList.contains("open") &&
+                !navLinks.contains(event.target) &&
+                !menuToggle.contains(event.target)
+            ) {
+                setMenuOpen(false);
             }
         });
     }
