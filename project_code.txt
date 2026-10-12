@@ -1855,6 +1855,7 @@ async def require_auth(request: Request) -> None:
 """Точка входа FastAPI: middleware, роутеры, события."""
 import logging
 import sys
+from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -1868,6 +1869,7 @@ from app.database import Base
 from app.routers import auth, backups, categories, employees, health, investments, operations, products, report_groups, stats, suppliers, sync
 from app.seed import seed_db
 from app.services import scheduler as scheduler_module
+from app.timezone import PROJECT_TIMEZONE
 
 import app.database as database_module
 
@@ -1883,6 +1885,9 @@ def _setup_logging() -> None:
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+    formatter.converter = lambda timestamp: datetime.fromtimestamp(
+        timestamp, PROJECT_TIMEZONE
+    ).timetuple()
 
     file_handler = RotatingFileHandler(
         log_file,
@@ -2391,6 +2396,7 @@ from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Integer, Numer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.timezone import local_now_naive
 
 
 class ReportGroup(Base):
@@ -2505,8 +2511,15 @@ class Operation(Base):
     supplier_id: Mapped[Optional[int]] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
     employee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("employees.id"), nullable=True)
     responsible: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # для «Съели сами»: Ира/Илья
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=local_now_naive,
+        server_default=func.now(),
+        onupdate=local_now_naive,
+    )
 
     category: Mapped[Category] = relationship(back_populates="operations")
     supplier: Mapped[Optional[Supplier]] = relationship(back_populates="operations")
@@ -2554,7 +2567,9 @@ class ChangeLog(Base):
     entity_id: Mapped[int] = mapped_column(Integer)
     action: Mapped[str] = mapped_column(String(10))  # create/update/delete
     changes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
 
 
 class SyncLog(Base):
@@ -2563,7 +2578,9 @@ class SyncLog(Base):
     __tablename__ = "sync_log"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
     success: Mapped[bool]
     message: Mapped[str] = mapped_column(Text)
     details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
@@ -3141,6 +3158,27 @@ def seed_fake_operations(db: Session) -> None:
     db.commit()
 
 
+# app\timezone.py
+"""Единый часовой пояс приложения и локальное время."""
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
+from app.config import settings
+
+PROJECT_TIMEZONE = ZoneInfo(settings.TIMEZONE)
+
+
+def local_now() -> datetime:
+    return datetime.now(PROJECT_TIMEZONE)
+
+
+def local_now_naive() -> datetime:
+    return local_now().replace(tzinfo=None)
+
+
+def local_today() -> date:
+    return local_now().date()
+
 # app\__init__.py
 
 
@@ -3185,7 +3223,6 @@ async def logout():
 
 # app\routers\backups.py
 """Роутер управления резервными копиями БД."""
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -3195,6 +3232,7 @@ from starlette.templating import Jinja2Templates
 from app.config import settings
 from app.deps import get_db, require_auth
 from app.services.backup import backup_database, list_backups, restore_database
+from app.timezone import PROJECT_TIMEZONE
 
 router = APIRouter(tags=["backups"], dependencies=[Depends(require_auth)])
 templates = Jinja2Templates(directory="app/templates")
@@ -3213,7 +3251,7 @@ def _backup_to_dict(backup: Path) -> dict:
     stat = backup.stat()
     return {
         "filename": backup.name,
-        "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        "created_at": datetime.fromtimestamp(stat.st_mtime, tz=PROJECT_TIMEZONE).isoformat(),
         "size_bytes": stat.st_size,
     }
 
@@ -3749,6 +3787,7 @@ from starlette.templating import Jinja2Templates
 from app.deps import get_db, require_auth
 from app.models import Category, ChangeLog, Employee, Operation, OperationItem, Product, Supplier
 from app.schemas import OperationCreate, OperationRead
+from app.timezone import local_today
 
 
 PAYMENT_METHOD_LABELS = {
@@ -3932,7 +3971,7 @@ async def operation_new(request: Request, db: Session = Depends(get_db)):
             "employees": employees,
             "suppliers": suppliers,
             "payment_labels": PAYMENT_METHOD_LABELS,
-            "today": date.today().isoformat(),
+            "today": local_today().isoformat(),
         },
     )
 
@@ -3996,7 +4035,7 @@ async def operation_edit(
             "employees": employees,
             "suppliers": suppliers,
             "payment_labels": PAYMENT_METHOD_LABELS,
-            "today": date.today().isoformat(),
+            "today": local_today().isoformat(),
         },
     )
 
@@ -5173,11 +5212,11 @@ import logging
 import os
 import shutil
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from app.config import BASE_DIR, settings
+from app.timezone import local_now
 
 logger = logging.getLogger(__name__)
 
@@ -5222,7 +5261,7 @@ def _backup_postgres_database(database_url: str) -> Path | None:
         logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S_%f")
     backup_path = backup_dir / f"app_{timestamp}.sql"
 
     try:
@@ -5259,7 +5298,7 @@ def _backup_dir() -> Path:
 def _parse_existing_backups(backup_dir: Path) -> list[Path]:
     """Возвращает существующие файлы бэкапов, отсортированные по имени (свежее — раньше).
 
-    Имя файла содержит UTC-метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
+    Имя файла содержит локальную метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
     лексикографический порядок совпадает с хронологическим.
     """
     if not backup_dir.exists():
@@ -5297,7 +5336,7 @@ def backup_database() -> Path | None:
         logger.error("Не удалось создать каталог бэкапов %s: %s", backup_dir, exc)
         return None
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
+    timestamp = local_now().strftime("%Y%m%d_%H%M%S_%f")
     backup_name = f"app_{timestamp}.db"
     backup_path = backup_dir / backup_name
 
@@ -5396,6 +5435,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models import Category, Employee, Investment, Operation, ReportGroup
+from app.timezone import local_today
 
 MONTH_NAMES = [
     "январь",
@@ -5468,7 +5508,7 @@ def _month_label(year: int, month: int, years: set[int]) -> str:
 def _months_range(records: list[Operation | Investment]) -> list[tuple[int, int, str]]:
     """Возвращает список (year, month, label), отсортированный по хронологии."""
     if not records:
-        today = date.today()
+        today = local_today()
         return [(today.year, today.month, _month_label(today.year, today.month, {today.year}))]
 
     months_set: set[tuple[int, int]] = set()
@@ -5911,9 +5951,6 @@ def report_to_matrix(report: ReportData) -> list[list]:
 # app\services\scheduler.py
 """Фоновый планировщик синхронизации с Google Sheets."""
 import logging
-from datetime import datetime
-
-import pytz
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -5922,10 +5959,15 @@ from app.config import settings
 from app.database import SessionLocal
 from app.services.backup import backup_database
 from app.services.sheets import log_sync_attempt, sync_operations_to_sheets
+from app.timezone import PROJECT_TIMEZONE
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
+scheduler = AsyncIOScheduler(timezone=PROJECT_TIMEZONE)
+
+
+def _cron_trigger(schedule: str) -> CronTrigger:
+    return CronTrigger.from_crontab(schedule, timezone=PROJECT_TIMEZONE)
 
 
 def sync_job() -> None:
@@ -5976,7 +6018,7 @@ def setup_scheduler() -> None:
     if settings.SYNC_ENABLED and settings.GOOGLE_SPREADSHEET_ID:
         scheduler.add_job(
             sync_job,
-            CronTrigger.from_crontab(settings.SYNC_SCHEDULE),
+            _cron_trigger(settings.SYNC_SCHEDULE),
             id="sheets_sync",
             replace_existing=True,
         )
@@ -5990,7 +6032,7 @@ def setup_scheduler() -> None:
 
     scheduler.add_job(
         backup_job,
-        CronTrigger.from_crontab(settings.BACKUP_SCHEDULE),
+        _cron_trigger(settings.BACKUP_SCHEDULE),
         id="database_backup",
         replace_existing=True,
     )
@@ -7068,14 +7110,23 @@ function confirmDelete() {
     const navLinks = document.querySelector(".nav-links");
 
     if (menuToggle && navLinks) {
+        const setMenuOpen = (isOpen) => {
+            navLinks.classList.toggle("open", isOpen);
+            menuToggle.setAttribute("aria-expanded", String(isOpen));
+        };
+
         menuToggle.addEventListener("click", (event) => {
             event.stopPropagation();
-            navLinks.classList.toggle("open");
+            setMenuOpen(!navLinks.classList.contains("open"));
         });
 
         document.addEventListener("click", (event) => {
-            if (navLinks.classList.contains("open") && !navLinks.contains(event.target) && event.target !== menuToggle) {
-                navLinks.classList.remove("open");
+            if (
+                navLinks.classList.contains("open") &&
+                !navLinks.contains(event.target) &&
+                !menuToggle.contains(event.target)
+            ) {
+                setMenuOpen(false);
             }
         });
     }
@@ -8496,6 +8547,13 @@ def test_sync_page(client):
 
 def test_sync_default_schedule_is_hourly():
     assert settings.SYNC_SCHEDULE == "0 * * * *"
+
+
+def test_scheduler_cron_triggers_use_moscow_timezone():
+    from app.services.scheduler import _cron_trigger
+
+    assert _cron_trigger(settings.SYNC_SCHEDULE).timezone.key == "Europe/Moscow"
+    assert _cron_trigger(settings.BACKUP_SCHEDULE).timezone.key == "Europe/Moscow"
 
 
 def test_sync_exports_operations_sheet(client, monkeypatch):
