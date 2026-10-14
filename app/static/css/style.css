@@ -232,7 +232,7 @@ h1, h2 {
     background: var(--bg);
     font-weight: 600;
 }
-.operations-table td.actions {
+.operations-table td.operation-actions-cell {
     display: table-cell;
     position: sticky;
     right: 0;
@@ -241,7 +241,16 @@ h1, h2 {
     white-space: nowrap;
     text-align: center;
 }
-.operations-table td.actions .btn {
+.operation-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+.operation-actions form {
+    margin: 0;
+}
+.operation-actions .btn {
     width: auto;
 }
 .table-wrapper td.numeric {
@@ -634,6 +643,15 @@ th {
     }
 
     .actions .btn {
+        width: 100%;
+    }
+
+    .operation-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .operation-actions .btn {
         width: 100%;
     }
 

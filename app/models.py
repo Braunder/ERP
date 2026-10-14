@@ -151,6 +151,21 @@ class Investment(Base):
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
+class DataImportBatch(Base):
+    """Импортированный исходный файл; hash предотвращает повторную загрузку."""
+
+    __tablename__ = "data_import_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    source_filename: Mapped[str] = mapped_column(String(255))
+    operations_imported: Mapped[int] = mapped_column(Integer, default=0)
+    investments_imported: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=local_now_naive, server_default=func.now()
+    )
+
+
 class OperationItem(Base):
     """Строка продуктов внутри операции (мульти-ввод)."""
 

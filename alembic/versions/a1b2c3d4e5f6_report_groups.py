@@ -85,10 +85,10 @@ def upgrade() -> None:
             group_ids[name] = result.lastrowid
         old_key_to_group_id[old_key] = group_ids[name]
 
-    op.add_column(
-        'categories',
-        sa.Column('report_group_id', sa.Integer(), nullable=True),
-    )
+    with op.batch_alter_table('categories') as batch_op:
+        batch_op.add_column(
+            sa.Column('report_group_id', sa.Integer(), nullable=True),
+        )
     for old_key, gid in old_key_to_group_id.items():
         conn.execute(
             sa.text(
@@ -97,14 +97,14 @@ def upgrade() -> None:
             {"gid": gid, "key": old_key},
         )
 
-    op.create_foreign_key(
-        'fk_categories_report_group_id',
-        'categories',
-        'report_groups',
-        ['report_group_id'],
-        ['id'],
-    )
-    op.drop_column('categories', 'report_group')
+    with op.batch_alter_table('categories') as batch_op:
+        batch_op.create_foreign_key(
+            'fk_categories_report_group_id',
+            'report_groups',
+            ['report_group_id'],
+            ['id'],
+        )
+        batch_op.drop_column('report_group')
 
 
 def downgrade() -> None:
@@ -124,6 +124,7 @@ def downgrade() -> None:
             sa.text("UPDATE categories SET report_group = :name WHERE report_group_id = :gid"),
             {"name": name, "gid": gid},
         )
-    op.drop_constraint('fk_categories_report_group_id', 'categories', type_='foreignkey')
-    op.drop_column('categories', 'report_group_id')
+    with op.batch_alter_table('categories') as batch_op:
+        batch_op.drop_constraint('fk_categories_report_group_id', type_='foreignkey')
+        batch_op.drop_column('report_group_id')
     op.drop_table('report_groups')

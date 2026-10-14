@@ -8,7 +8,7 @@ import gspread
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, settings
-from app.models import Category, Operation, SyncLog
+from app.models import Category, Investment, Operation, SyncLog
 from app.services.report import ReportRow, build_report, report_to_matrix
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ PAYMENT_METHOD_LABELS = {
 
 REPORT_SHEET_TITLE = "Отчет"
 OPERATIONS_SHEET_TITLE = "Операции"
+INVESTMENTS_SHEET_TITLE = "Инвестиции"
 
 
 def _safe_iso(value, timespec: str | None = None) -> str:
@@ -314,13 +315,27 @@ def _build_operations_matrix(db: Session) -> list[list[object]]:
     return rows
 
 
-def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
-    """Выгружает P&L и полный список операций в Google Sheets.
+def _build_investments_matrix(db: Session) -> list[list[object]]:
+    """Возвращает все инвестиции с датой, суммой и исходным комментарием."""
+    investments = db.query(Investment).order_by(Investment.date, Investment.id).all()
+    return [
+        ["Дата", "Сумма", "Комментарий"],
+        *[
+            [
+                _safe_iso(investment.date),
+                float(investment.amount or 0),
+                investment.comment or "",
+            ]
+            for investment in investments
+        ],
+    ]
 
-    Две выгрузки независимы: ошибка P&L не блокирует лист «Операции»
-    и наоборот. Если одна из них завершилась ошибкой, исключение
-    поднимается после попытки второй выгрузки, чтобы вызывающий код
-    корректно показал неуспешную синхронизацию.
+
+def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
+    """Выгружает P&L, операции и инвестиции в Google Sheets.
+
+    Выгрузки независимы: ошибка одной не блокирует остальные. Если любая
+    из них завершилась ошибкой, исключение поднимается после всех попыток.
     """
     spreadsheet_id = spreadsheet_id or settings.GOOGLE_SPREADSHEET_ID
     if not spreadsheet_id:
@@ -334,6 +349,7 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
     report = None
     report_matrix = None
     operations_matrix = None
+    investments_matrix = None
     errors: list[str] = []
 
     try:
@@ -349,8 +365,15 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         logger.exception("Не удалось построить выгрузку операций")
         errors.append(f"Операции: {exc}")
 
+    try:
+        investments_matrix = _build_investments_matrix(db)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Не удалось построить выгрузку инвестиций")
+        errors.append(f"Инвестиции: {exc}")
+
     report_synced = False
     operations_synced = False
+    investments_synced = False
 
     # Записываем отчёт независимо от результата подготовки операций.
     if report is not None and report_matrix is not None:
@@ -394,10 +417,32 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
             logger.exception("Ошибка при записи операций")
             errors.append(f"Операции: {exc}")
 
+    if investments_matrix is not None:
+        try:
+            investments_worksheet = _get_or_create_worksheet(
+                spreadsheet, INVESTMENTS_SHEET_TITLE
+            )
+            try:
+                investments_worksheet.clear_basic_filter()
+            except Exception:  # noqa: BLE001
+                pass
+            investments_worksheet.clear()
+            _write_matrix_chunked(investments_worksheet, investments_matrix)
+            investments_worksheet.freeze(rows=1)
+            investments_worksheet.set_basic_filter()
+            investments_synced = True
+        except gspread.exceptions.APIError as exc:
+            logger.exception("Ошибка Google Sheets API при записи инвестиций")
+            errors.append(f"Инвестиции: ошибка Google Sheets API: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ошибка при записи инвестиций")
+            errors.append(f"Инвестиции: {exc}")
+
     operations_count = 0
     if operations_matrix is not None:
         # Заголовок + пустая строка фильтра не являются операциями.
         operations_count = max(0, len(operations_matrix) - 2)
+    investments_count = max(0, len(investments_matrix) - 1) if investments_matrix is not None else 0
 
     result = {
         "synced": operations_count if operations_synced else 0,
@@ -406,9 +451,12 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
         "spreadsheet_id": spreadsheet_id,
         "sheet_title": REPORT_SHEET_TITLE,
         "operations_sheet_title": OPERATIONS_SHEET_TITLE,
+        "investments_rows": investments_count if investments_synced else 0,
+        "investments_sheet_title": INVESTMENTS_SHEET_TITLE,
         "months": report.months if report is not None else [],
         "report_synced": report_synced,
         "operations_synced": operations_synced,
+        "investments_synced": investments_synced,
         "errors": errors,
     }
 

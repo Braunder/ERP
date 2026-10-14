@@ -150,3 +150,27 @@ def test_category_editor_uses_current_report_groups(client):
     assert '"id": ' + str(group_id) in response.text
     assert "Проверка динамической группы (Накладные расходы)" in response.text
     assert "for (const group of reportGroupOptions)" in response.text
+
+
+def test_operation_action_buttons_have_dedicated_table_cell(client):
+    client.post("/login", data={"password": "admin"})
+    category_response = client.post(
+        "/api/categories",
+        json={"name": "Категория для кнопок", "kind": "expense"},
+    )
+    operation_response = client.post(
+        "/api/operations",
+        json={
+            "date": "2026-09-01",
+            "kind": "expense",
+            "category_id": category_response.json()["id"],
+            "amount": "10.00",
+            "comment": "Проверка действий",
+        },
+    )
+    operation_id = operation_response.json()["id"]
+
+    page = client.get("/operations")
+    assert f'<td class="operation-actions-cell">' in page.text
+    assert f'href="/operations/{operation_id}/edit"' in page.text
+    assert f'action="/operations/{operation_id}/delete"' in page.text
