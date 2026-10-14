@@ -232,9 +232,17 @@ h1, h2 {
     background: var(--bg);
     font-weight: 600;
 }
-.table-wrapper td.actions {
+.operations-table td.actions {
+    display: table-cell;
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    background: var(--surface);
     white-space: nowrap;
-    text-align: right;
+    text-align: center;
+}
+.operations-table td.actions .btn {
+    width: auto;
 }
 .table-wrapper td.numeric {
     text-align: right;

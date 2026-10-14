@@ -123,7 +123,12 @@ def _aggregate_investments(
 def _aggregate(
     operations: list[Operation],
     months: list[tuple[int, int, str]],
-) -> tuple[list[Decimal], dict, dict, dict, list[Decimal]]:
+) -> tuple[
+    list[Decimal],
+    dict[int, list[Decimal]],
+    dict[int, dict[str, list[Decimal]]],
+    list[Decimal],
+]:
     """Агрегирует суммы по месяцам, группам и категориям.
 
     Возвращает также расходы без группы отчёта, чтобы они не терялись
@@ -500,7 +505,7 @@ def report_to_matrix(report: ReportData) -> list[list]:
                 if row.skip_percent:
                     line.append("")
                 elif row.label == "Выручка всего":
-                    line.append("1")
+                    line.append(1)
                 else:
                     # Живая формула: доля от выручки этого месяца.
                     # Сначала проверяем нулевую/пустую выручку, чтобы не получить
