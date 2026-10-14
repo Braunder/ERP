@@ -110,6 +110,24 @@ def _parse_decimal(value, *, default: str = "0", field_name: str = "Сумма")
     return result
 
 
+def _parse_int(value, *, field_name: str, default: int | None = None) -> int | None:
+    """Преобразует поле формы в int; некорректный ввод возвращает HTTP 400, а не 500."""
+    if value is None or str(value).strip() == "":
+        return default
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Поле «{field_name}» должно быть целым числом") from exc
+
+
+def _parse_date(value) -> date:
+    """Проверяет дату из формы и сообщает об ошибке понятным ответом."""
+    try:
+        return date.fromisoformat(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Укажите корректную дату операции") from exc
+
+
 def _validate_operation_data(
     db: Session,
     *,
@@ -152,6 +170,10 @@ def _validate_operation_form(
 ) -> None:
     if kind not in ("income", "expense"):
         raise HTTPException(status_code=400, detail="Неверный тип операции")
+    if category.kind != kind:
+        raise HTTPException(status_code=400, detail="Тип операции не соответствует типу категории")
+    if guests_count is not None and guests_count <= 0:
+        raise HTTPException(status_code=400, detail="Количество гостей должно быть больше 0")
 
     if category.requires_guests and (not guests_count or guests_count <= 0):
         raise HTTPException(status_code=400, detail="Количество гостей обязательно и должно быть больше 0")
@@ -315,15 +337,15 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
     data = {k: v for k, v in form.multi_items()}
 
     kind = data.get("kind")
-    category_id = int(data.get("category_id") or 0)
+    category_id = _parse_int(data.get("category_id"), field_name="Категория", default=0)
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=400, detail="Категория не найдена")
 
-    guests_count = int(data["guests_count"]) if data.get("guests_count") else None
+    guests_count = _parse_int(data.get("guests_count"), field_name="Количество гостей")
     payment_method = data.get("payment_method") or None
-    supplier_id = int(data["supplier_id"]) if data.get("supplier_id") else None
-    employee_id = int(data["employee_id"]) if data.get("employee_id") else None
+    supplier_id = _parse_int(data.get("supplier_id"), field_name="Поставщик")
+    employee_id = _parse_int(data.get("employee_id"), field_name="Сотрудник")
     responsible = data.get("responsible") or None
 
     items = _parse_items_from_form(form, db)
@@ -354,7 +376,7 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
     )
 
     operation = Operation(
-        date=date.fromisoformat(data["date"]),
+        date=_parse_date(data.get("date")),
         kind=kind,
         category_id=category_id,
         amount=amount,
@@ -373,7 +395,11 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
         db.add(item)
 
     _log_change(db, "operation", operation.id, "create")
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return RedirectResponse(url="/operations", status_code=302)
 
 
@@ -396,15 +422,15 @@ async def operation_update(
     data = {k: v for k, v in form.multi_items()}
 
     kind = data.get("kind")
-    category_id = int(data.get("category_id") or 0)
+    category_id = _parse_int(data.get("category_id"), field_name="Категория", default=0)
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=400, detail="Категория не найдена")
 
-    guests_count = int(data["guests_count"]) if data.get("guests_count") else None
+    guests_count = _parse_int(data.get("guests_count"), field_name="Количество гостей")
     payment_method = data.get("payment_method") or None
-    supplier_id = int(data["supplier_id"]) if data.get("supplier_id") else None
-    employee_id = int(data["employee_id"]) if data.get("employee_id") else None
+    supplier_id = _parse_int(data.get("supplier_id"), field_name="Поставщик")
+    employee_id = _parse_int(data.get("employee_id"), field_name="Сотрудник")
     responsible = data.get("responsible") or None
 
     items = _parse_items_from_form(form, db)
@@ -422,7 +448,7 @@ async def operation_update(
     columns = [c.name for c in Operation.__table__.columns]
     old_values = {c: getattr(operation, c) for c in columns}
 
-    operation.date = date.fromisoformat(data["date"])
+    operation.date = _parse_date(data.get("date"))
     operation.kind = kind
     operation.category_id = category_id
     operation.comment = data.get("comment") or None
@@ -474,7 +500,11 @@ async def operation_update(
         if old_values[k] != new_values[k]
     }
     _log_change(db, "operation", operation.id, "update", changes)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return RedirectResponse(url="/operations", status_code=302)
 
 
@@ -590,6 +620,10 @@ async def api_operations_create(data: OperationCreate, db: Session = Depends(get
         item.operation_id = operation.id
         db.add(item)
     _log_change(db, "operation", operation.id, "create")
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(operation)
     return operation
