@@ -46,6 +46,28 @@ TODO.md
 *.tmp
 
 
+# .env
+# Подключение к БД (SQLite по умолчанию)
+DATABASE_URL=sqlite:///data/app.db
+
+# Пароль админ-панели
+ADMIN_PASSWORD=admin
+
+# Секретный ключ подписи сессий (сгенерируйте свой для прода)
+SECRET_KEY=change-me-in-production
+
+# Google Sheets (фаза 3)
+GOOGLE_SA_FILE=gen-lang-client-0103225655-70fbad684335.json
+GOOGLE_SPREADSHEET_ID=
+SYNC_ENABLED=false
+SYNC_SCHEDULE="0 * * * *"
+
+# Резервное копирование (фаза 4)
+BACKUP_DIR=backups
+BACKUP_KEEP=7
+BACKUP_SCHEDULE=0 3 * * *
+
+
 # .env.example
 # Подключение к БД (SQLite по умолчанию)
 DATABASE_URL=sqlite:///data/app.db
@@ -80,7 +102,6 @@ __pycache__/
 .pytest_cache/
 
 # Данные приложения
-data/
 logs/
 
 # Переменные окружения и секреты

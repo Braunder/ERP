@@ -95,13 +95,18 @@ async def categories_list(request: Request, db: Session = Depends(get_db)):
         db.query(Category).order_by(Category.kind, Category.name).all()
     )
     tree = _build_category_tree(all_categories)
+    report_groups = _report_groups(db)
     return templates.TemplateResponse(
         request,
         "categories/list.html",
         {
             "categories": tree,
             "all_categories": all_categories,
-            "report_groups": _report_groups(db),
+            "report_groups": report_groups,
+            "report_group_options": [
+                {"id": group.id, "label": report_group_option_label(group)}
+                for group in report_groups
+            ],
         },
     )
 
