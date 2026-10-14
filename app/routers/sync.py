@@ -32,14 +32,18 @@ def _run_manual_sync(job_id: str) -> None:
         log_sync_attempt(
             db,
             success=True,
-            message="Синхронизация отчёта P&L с Google Таблицей завершена успешно",
+            message="Синхронизация отчёта, операций и инвестиций завершена успешно",
             details=result,
             records_count=result.get("synced"),
         )
         state = {
             "status": "success",
             "synced": result["synced"],
-            "message": f"Синхронизировано {result['synced']} операций",
+            "investments_synced": result["investments_rows"],
+            "message": (
+                f"Синхронизировано {result['synced']} операций и "
+                f"{result['investments_rows']} инвестиций"
+            ),
         }
     except Exception as exc:  # noqa: BLE001
         message = str(exc)

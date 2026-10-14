@@ -13,7 +13,7 @@
         Таблица: <strong>{{ "настроена" if spreadsheet_configured else "не настроена" }}</strong>
     </p>
     <button class="btn btn-primary" id="btn-sync" {% if not spreadsheet_configured %}disabled{% endif %}>
-        Синхронизировать отчёт P&L
+        Синхронизировать данные
     </button>
     <div id="sync-status" class="alert" style="margin-top: 1rem; display: none;"></div>
 </div>
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         if (pollData.status === "success") {
-          status.textContent = `Синхронизация завершена: ${pollData.synced} операций`;
+          status.textContent = pollData.message;
         } else {
           status.className = "alert alert-error";
           status.textContent = `Ошибка: ${pollData.error}`;

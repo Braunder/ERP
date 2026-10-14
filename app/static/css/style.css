@@ -232,16 +232,33 @@ h1, h2 {
     background: var(--bg);
     font-weight: 600;
 }
-.operations-table td.actions {
-    display: table-cell;
+.operations-table th.operation-actions-header,
+.operations-table td.operation-actions-cell {
     position: sticky;
-    right: 0;
+    left: 0;
+    min-width: 150px;
+}
+.operations-table th.operation-actions-header {
+    z-index: 2;
+    background: var(--bg);
+}
+.operations-table td.operation-actions-cell {
+    display: table-cell;
     z-index: 1;
     background: var(--surface);
     white-space: nowrap;
     text-align: center;
 }
-.operations-table td.actions .btn {
+.operation-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+.operation-actions form {
+    margin: 0;
+}
+.operation-actions .btn {
     width: auto;
 }
 .table-wrapper td.numeric {
@@ -634,6 +651,15 @@ th {
     }
 
     .actions .btn {
+        width: 100%;
+    }
+
+    .operation-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .operation-actions .btn {
         width: 100%;
     }
 

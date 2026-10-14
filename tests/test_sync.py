@@ -1,9 +1,11 @@
 """Тесты синхронизации с Google Sheets."""
 import time
+from datetime import date
+from decimal import Decimal
 from unittest.mock import MagicMock
 
 from app.config import settings
-from app.models import SyncLog
+from app.models import Investment, SyncLog
 
 
 def _make_mock_gspread():
@@ -75,12 +77,28 @@ def test_sync_exports_operations_sheet(client, monkeypatch):
 
     db = SessionLocal()
     try:
+        db.add(
+            Investment(
+                date=date(2024, 4, 2),
+                amount=Decimal("50.00"),
+                comment="Инвестиция для синхронизации",
+            )
+        )
+        db.commit()
         result = sync_operations_to_sheets(db)
     finally:
         db.close()
 
     assert result["operations_rows"] >= 1
     assert result["synced"] >= 1
+    assert result["investments_rows"] == 1
+    assert result["investments_synced"] is True
+    updates = mock_gspread.service_account.return_value.open_by_key.return_value.worksheet.return_value.update.call_args_list
+    assert any(
+        call.args[0][0] == ["Дата", "Сумма", "Комментарий"]
+        and call.args[0][1][2] == "Инвестиция для синхронизации"
+        for call in updates
+    )
 
 
 def test_sync_now_without_spreadsheet_id(client, monkeypatch):
