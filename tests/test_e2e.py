@@ -166,13 +166,18 @@ def test_operation_action_buttons_have_dedicated_table_cell(client):
             "category_id": category_response.json()["id"],
             "amount": "10.00",
             "comment": "Проверка действий",
+            "guests_count": 3,
+            "payment_method": "card",
         },
     )
     operation_id = operation_response.json()["id"]
 
     page = client.get("/operations")
-    assert '<th class="operation-actions-header">Действия</th>' in page.text
     assert f'<td class="operation-actions-cell">' in page.text
-    assert page.text.index('class="operation-actions-cell"') < page.text.index("<td>2026-09-01</td>")
     assert f'href="/operations/{operation_id}/edit"' in page.text
     assert f'action="/operations/{operation_id}/delete"' in page.text
+    assert "<th>Подробности</th>" in page.text
+    assert "<th>Поставщик</th>" not in page.text
+    assert "<dt>Гости</dt>" in page.text
+    assert "<dd>3</dd>" in page.text
+    assert "<dd>Б/нал</dd>" in page.text

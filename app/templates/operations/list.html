@@ -40,25 +40,67 @@
 
 <div class="table-wrapper operations-table">
     <table>
+        <colgroup>
+            <col class="operation-date-column">
+            <col class="operation-kind-column">
+            <col class="operation-category-column">
+            <col class="operation-amount-column">
+            <col class="operation-comment-column">
+            <col class="operation-details-column">
+            <col class="operation-actions-column">
+        </colgroup>
         <thead>
             <tr>
-                <th class="operation-actions-header">Действия</th>
                 <th>Дата</th>
                 <th>Тип</th>
                 <th>Категория</th>
                 <th>Сумма</th>
                 <th>Комментарий</th>
-                <th>Гости</th>
-                <th>Оплата</th>
-                <th>Поставщик</th>
-                <th>Сотрудник</th>
-                <th>Ответственный</th>
-                <th>Продукты</th>
+                <th>Подробности</th>
+                <th>Действия</th>
             </tr>
         </thead>
         <tbody>
             {% for operation in operations %}
             <tr>
+                <td>{{ operation.date }}</td>
+                <td>{% if operation.kind == 'income' %}Доход{% else %}Расход{% endif %}</td>
+                <td class="operation-category" title="{{ operation.category.parent.name ~ ' → ' if operation.category.parent else '' }}{{ operation.category.name }}">
+                    {% if operation.category.parent %}
+                        {{ operation.category.parent.name }} → {{ operation.category.name }}
+                    {% else %}
+                        {{ operation.category.name }}
+                    {% endif %}
+                </td>
+                <td class="numeric">{{ "%.2f"|format(operation.amount) }}</td>
+                <td class="operation-comment" title="{{ operation.comment or '' }}">{{ operation.comment or '' }}</td>
+                <td>
+                    <details class="operation-details">
+                        <summary>Показать</summary>
+                        <dl>
+                            <dt>Гости</dt>
+                            <dd>{{ operation.guests_count or '—' }}</dd>
+                            <dt>Оплата</dt>
+                            <dd>{{ payment_labels.get(operation.payment_method, operation.payment_method or '—') }}</dd>
+                            <dt>Поставщик</dt>
+                            <dd>{{ operation.supplier.name if operation.supplier else '—' }}</dd>
+                            <dt>Сотрудник</dt>
+                            <dd>{{ operation.employee.name if operation.employee else '—' }}</dd>
+                            <dt>Ответственный</dt>
+                            <dd>{{ operation.responsible or '—' }}</dd>
+                            <dt>Продукты</dt>
+                            <dd>
+                                {% if operation.items %}
+                                    {% for item in operation.items %}
+                                        {{ item.name }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </details>
+                </td>
                 <td class="operation-actions-cell">
                     <div class="operation-actions">
                         <a class="btn btn-small" href="/operations/{{ operation.id }}/edit">Изменить</a>
@@ -67,35 +109,10 @@
                         </form>
                     </div>
                 </td>
-                <td>{{ operation.date }}</td>
-                <td>{% if operation.kind == 'income' %}Доход{% else %}Расход{% endif %}</td>
-                <td>
-                    {% if operation.category.parent %}
-                        {{ operation.category.parent.name }} → {{ operation.category.name }}
-                    {% else %}
-                        {{ operation.category.name }}
-                    {% endif %}
-                </td>
-                <td class="numeric">{{ "%.2f"|format(operation.amount) }}</td>
-                <td>{{ operation.comment or '' }}</td>
-                <td>{{ operation.guests_count or '' }}</td>
-                <td>{{ payment_labels.get(operation.payment_method, operation.payment_method or '') }}</td>
-                <td>{{ operation.supplier.name if operation.supplier else '—' }}</td>
-                <td>{{ operation.employee.name if operation.employee else '—' }}</td>
-                <td>{{ operation.responsible or '—' }}</td>
-                <td>
-                    {% if operation.items %}
-                        {% for item in operation.items %}
-                            {{ item.name }}{% if not loop.last %}, {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
             </tr>
             {% else %}
             <tr>
-                <td colspan="12" class="empty">Операций пока нет</td>
+                <td colspan="7" class="empty">Операций пока нет</td>
             </tr>
             {% endfor %}
         </tbody>
