@@ -171,6 +171,8 @@ def test_operation_action_buttons_have_dedicated_table_cell(client):
     operation_id = operation_response.json()["id"]
 
     page = client.get("/operations")
+    assert '<th class="operation-actions-header">Действия</th>' in page.text
     assert f'<td class="operation-actions-cell">' in page.text
+    assert page.text.index('class="operation-actions-cell"') < page.text.index("<td>2026-09-01</td>")
     assert f'href="/operations/{operation_id}/edit"' in page.text
     assert f'action="/operations/{operation_id}/delete"' in page.text

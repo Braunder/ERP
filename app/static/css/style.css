@@ -232,10 +232,18 @@ h1, h2 {
     background: var(--bg);
     font-weight: 600;
 }
+.operations-table th.operation-actions-header,
+.operations-table td.operation-actions-cell {
+    position: sticky;
+    left: 0;
+    min-width: 150px;
+}
+.operations-table th.operation-actions-header {
+    z-index: 2;
+    background: var(--bg);
+}
 .operations-table td.operation-actions-cell {
     display: table-cell;
-    position: sticky;
-    right: 0;
     z-index: 1;
     background: var(--surface);
     white-space: nowrap;
