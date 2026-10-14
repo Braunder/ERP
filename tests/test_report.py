@@ -81,6 +81,7 @@ def test_build_report_totals(client):
     assert lavka_row.values[0].percent == 100
     # Категория «Лавка» внутри группы «Доход»
     assert any(sub.label == "· Лавка" for sub in lavka_row.subrows)
+    assert any(sub.label == "· Закупка продуктов" for sub in rows_by_label["Прямой расход"].subrows)
 
     direct_section = rows_by_label["Прямые расходы"]
     assert direct_section.values[0].amount == 300
@@ -89,10 +90,9 @@ def test_build_report_totals(client):
     overhead_section = rows_by_label["Накладные расходы"]
     assert overhead_section.values[0].amount == 100
     assert overhead_section.values[0].percent == 10
+    assert any(sub.label == "· WiFi" for sub in overhead_section.subrows)
 
-    other_section = rows_by_label["Другие группы"]
-    assert other_section.values[0].amount == 50
-    assert other_section.values[0].percent == 5
+    assert "Другие группы" not in rows_by_label
 
     taxes_row = rows_by_label["Налоги и сборы"]
     assert taxes_row.values[0].amount == 50
@@ -134,6 +134,7 @@ def test_report_matrix_shape(client):
     assert matrix[1][2] == "%"
     # Хотя бы одна строка данных
     assert len(matrix) > 2
+    assert any(row[0] == "· Лавка" for row in matrix)
 
 
 def test_revenue_total_percent_is_not_circular(client):

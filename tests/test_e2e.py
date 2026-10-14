@@ -79,6 +79,10 @@ def test_full_workflow(client):
     assert len(expense_op["items"]) == 1
     assert expense_op["items"][0]["name"] == "E2E продукт"
 
+    operations_page = client.get("/operations")
+    assert f'href="/operations/{expense_op["id"]}/edit"' in operations_page.text
+    assert f'action="/operations/{expense_op["id"]}/delete"' in operations_page.text
+
     # 7. Редактирование операции
     edit_response = client.post(
         f"/operations/{expense_op['id']}",
@@ -120,3 +124,29 @@ def test_full_workflow(client):
 
     final_operations = client.get("/api/operations").json()
     assert not any(o["id"] == income_id for o in final_operations)
+
+
+def test_category_editor_uses_current_report_groups(client):
+    from app.database import SessionLocal
+    from app.models import ReportGroup
+
+    client.post("/login", data={"password": "admin"})
+
+    db = SessionLocal()
+    try:
+        group = ReportGroup(
+            name="Проверка динамической группы",
+            section="overhead",
+            sort_order=99,
+        )
+        db.add(group)
+        db.commit()
+        group_id = group.id
+    finally:
+        db.close()
+
+    response = client.get("/categories")
+    assert response.status_code == 200
+    assert '"id": ' + str(group_id) in response.text
+    assert "Проверка динамической группы (Накладные расходы)" in response.text
+    assert "for (const group of reportGroupOptions)" in response.text
