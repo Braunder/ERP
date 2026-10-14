@@ -78,6 +78,14 @@
 
 {% block extra_js %}
 <script>
+const reportGroupOptions = {{ report_group_options | tojson }};
+
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value;
+    return element.innerHTML;
+}
+
 async function filterCategories(groupId) {
     const list = document.getElementById('group-categories');
     if (!groupId) {
@@ -120,7 +128,11 @@ async function filterCategories(groupId) {
             // Генерируем опции из всех категорий типа (доход/расход)
             const allCats = {{ all_categories|map(attribute='id')|list|tojson }}; // нужно передать данные
             html += '</select></label></div>';
-            html += '<div class="form-row"><label>Группа в отчёте <select name="report_group_id"><option value="">— не в отчёте —</option><option value="1" ' + (node.report_group_id == 1 ? 'selected' : '') + '>Доход</option><option value="2" ' + (node.report_group_id == 2 ? 'selected' : '') + '>Прямой расход</option><option value="4" ' + (node.report_group_id == 4 ? 'selected' : '') + '>Налоги и сборы</option><option value="5" ' + (node.report_group_id == 5 ? 'selected' : '') + '>Накладные расходы</option></select></label></div>';
+            html += '<div class="form-row"><label>Группа в отчёте <select name="report_group_id"><option value="">— не в отчёте —</option>';
+            for (const group of reportGroupOptions) {
+                html += '<option value="' + group.id + '" ' + (node.report_group_id === group.id ? 'selected' : '') + '>' + escapeHtml(group.label) + '</option>';
+            }
+            html += '</select></label></div>';
             html += '<fieldset class="flags">';
             html += '<label><input type="checkbox" name="requires_payment_method" ' + (node.requires_payment_method ? 'checked' : '') + '> Способ оплаты</label>';
             html += '<label><input type="checkbox" name="requires_guests" ' + (node.requires_guests ? 'checked' : '') + '> Гости</label>';
