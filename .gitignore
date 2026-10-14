@@ -8,8 +8,6 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
-# Данные приложения
-data/*.db
 logs/
 
 # Переменные окружения и секреты
