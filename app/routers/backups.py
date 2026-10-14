@@ -1,4 +1,5 @@
 """Роутер управления резервными копиями БД."""
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -11,7 +12,7 @@ from app.services.backup import backup_database, list_backups, restore_database
 from app.timezone import PROJECT_TIMEZONE
 
 router = APIRouter(tags=["backups"], dependencies=[Depends(require_auth)])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
 def _backup_dir() -> Path:
@@ -53,10 +54,19 @@ async def backups_create():
 
 @router.post("/backups/restore/{filename}")
 async def backups_restore(filename: str):
-    backup_path = _backup_dir() / filename
+    # Принимаем только имя файла из каталога бэкапов; не позволяем передать
+    # абсолютный путь или ../ для доступа к произвольным файлам сервера.
+    if Path(filename).name != filename or filename in {".", ".."}:
+        raise HTTPException(status_code=400, detail="Некорректное имя резервной копии")
+
+    allowed = {path.name: path for path in list_backups()}
+    backup_path = allowed.get(filename)
+    if backup_path is None:
+        raise HTTPException(status_code=404, detail="Резервная копия не найдена")
+
     try:
         restore_database(backup_path)
-    except (FileNotFoundError, ValueError) as exc:
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return RedirectResponse(url="/backups?restored=1", status_code=302)
 

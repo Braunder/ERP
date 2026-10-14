@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
 from app.database import Base
+from app.config import settings
 from app.routers import auth, backups, categories, employees, health, investments, operations, products, report_groups, stats, suppliers, sync
 from app.seed import seed_db
 from app.services import scheduler as scheduler_module
@@ -58,16 +59,20 @@ _setup_logging()
 
 app = FastAPI(title="ERP учёт доходов/расходов")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# По умолчанию приложение работает same-origin и CORS не нужен.
+# Для внешнего фронтенда укажите доверенные адреса в CORS_ORIGINS через запятую.
+_cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    )
 
 app.mount("/static", StaticFiles(directory=str(APP_DIR / "static")), name="static")
-app.mount("/images", StaticFiles(directory=str(APP_DIR.parent / "images")), name="images")
+app.mount("/images", StaticFiles(directory=str(APP_DIR.parent / "images"), check_dir=False), name="images")
 templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 app.include_router(auth.router)

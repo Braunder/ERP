@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///data/app.db"
     ADMIN_PASSWORD: str = "admin"
     SECRET_KEY: str = "change-me-in-production"
+    COOKIE_SECURE: bool = False  # включить True после настройки HTTPS
+    CORS_ORIGINS: str = ""  # список origin через запятую; пусто = CORS выключен
 
     # Google Sheets (фаза 3)
     # GOOGLE_SA_FILE — путь к JSON-файлу сервисного аккаунта на диске.

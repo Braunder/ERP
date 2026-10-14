@@ -1,36 +1,18 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
 WORKDIR /app
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y \
-    gcc \
+RUN apt-get update && apt-get install -y --no-install-recommends gcc postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Копирование зависимостей
-COPY requirements.txt .
-
-# Установка Python зависимостей
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Копирование остального кода
 COPY . .
+RUN mkdir -p data logs backups && chmod +x run.py
+EXPOSE 8000
 
-# Копирование Google сервисного аккаунта (если есть)
-RUN if [ -f "gen-lang-client-*.json" ]; then \
-        for file in gen-lang-client-*.json; do \
-            cp "$file" .; \
-        done; \
-    fi
-
-# Создание директорий для данных
-RUN mkdir -p data logs backups
-
-# Установка прав
-RUN chmod +x run.py
-
-# Экспорт переменных окружения
-ENV PYTHONUNBUFFERED=1
-
-# Запуск приложения
-CMD ["sh", "-c", "python init_db.py || true && python run.py"]
+# Ошибка миграции должна остановить контейнер, а не запускать приложение на неправильной схеме.
+CMD ["sh", "-c", "python init_db.py && python run.py"]

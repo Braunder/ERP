@@ -1,9 +1,9 @@
 """Pydantic-схемы для API и валидации форм."""
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CategoryBase(BaseModel):
@@ -112,8 +112,8 @@ class EmployeeRead(EmployeeBase):
 class OperationItemBase(BaseModel):
     product_id: int | None = None
     name: str
-    price: Decimal
-    quantity: Decimal
+    price: Decimal = Field(ge=0)
+    quantity: Decimal = Field(gt=0)
     unit: str = "шт"
 
 
@@ -129,11 +129,11 @@ class OperationItemRead(OperationItemBase):
 
 class OperationBase(BaseModel):
     date: date
-    kind: str
-    category_id: int
-    amount: Decimal
+    kind: Literal["income", "expense"]
+    category_id: int = Field(gt=0)
+    amount: Decimal = Field(gt=0)
     comment: str | None = None
-    guests_count: int | None = None
+    guests_count: int | None = Field(default=None, ge=1)
     payment_method: str | None = None
     supplier_id: int | None = None
     employee_id: int | None = None

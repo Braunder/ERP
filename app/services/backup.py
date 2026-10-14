@@ -89,12 +89,12 @@ def _backup_dir() -> Path:
 def _parse_existing_backups(backup_dir: Path) -> list[Path]:
     """Возвращает существующие файлы бэкапов, отсортированные по имени (свежее — раньше).
 
-    Имя файла содержит локальную метку вида app_YYYYMMDD_HHMMSS_ffffff.db, поэтому
-    лексикографический порядок совпадает с хронологическим.
+    Имена файлов содержат временную метку; учитываем как SQLite .db, так и
+    PostgreSQL .sql, чтобы обе разновидности отображались и ротировались.
     """
     if not backup_dir.exists():
         return []
-    backups = [p for p in backup_dir.iterdir() if p.is_file() and p.suffix == ".db"]
+    backups = [p for p in backup_dir.iterdir() if p.is_file() and p.suffix.lower() in {".db", ".sql"}]
     backups.sort(key=lambda p: p.name, reverse=True)
     return backups
 

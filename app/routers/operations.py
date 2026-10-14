@@ -3,8 +3,9 @@
 import re
 from collections import defaultdict
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session, joinedload
@@ -26,7 +27,7 @@ PAYMENT_METHOD_LABELS = {
 ITEM_FIELD_RE = re.compile(r"items\[(\d+)\]\[(\w+)\]")
 
 router = APIRouter(tags=["operations"], dependencies=[Depends(require_auth)])
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[1] / "templates"))
 
 
 def _log_change(
@@ -89,12 +90,54 @@ def _parse_items_from_form(form, db: Session | None = None) -> list[OperationIte
             OperationItem(
                 product_id=product_id,
                 name=name,
-                price=Decimal(data.get("price") or "0"),
-                quantity=Decimal(data.get("quantity") or "1"),
+                price=_parse_decimal(data.get("price"), default="0", field_name="Цена товара"),
+                quantity=_parse_decimal(data.get("quantity"), default="1", field_name="Количество"),
                 unit=data.get("unit") or "шт",
             )
         )
     return items
+
+
+def _parse_decimal(value, *, default: str = "0", field_name: str = "Сумма") -> Decimal:
+    """Безопасно разбирает числовое поле формы и возвращает понятную ошибку 400."""
+    raw = default if value is None or str(value).strip() == "" else str(value).strip()
+    try:
+        result = Decimal(raw.replace(" ", "").replace(",", "."))
+    except (InvalidOperation, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Поле «{field_name}» должно быть числом") from exc
+    if not result.is_finite():
+        raise HTTPException(status_code=400, detail=f"Поле «{field_name}» содержит недопустимое число")
+    return result
+
+
+def _validate_operation_data(
+    db: Session,
+    *,
+    category: Category,
+    kind: str,
+    amount: Decimal,
+    supplier_id: int | None,
+    employee_id: int | None,
+    items: list[OperationItem],
+) -> None:
+    """Проверяет связи и инварианты независимо от того, пришли данные из формы или API."""
+    if kind not in ("income", "expense"):
+        raise HTTPException(status_code=400, detail="Неверный тип операции")
+    if category.kind != kind:
+        raise HTTPException(status_code=400, detail="Тип операции не соответствует типу категории")
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Сумма операции должна быть больше нуля")
+    if supplier_id is not None and db.query(Supplier.id).filter(Supplier.id == supplier_id).first() is None:
+        raise HTTPException(status_code=400, detail="Указанный поставщик не найден")
+    if employee_id is not None and db.query(Employee.id).filter(Employee.id == employee_id).first() is None:
+        raise HTTPException(status_code=400, detail="Указанный сотрудник не найден")
+    for item in items:
+        if item.price < 0:
+            raise HTTPException(status_code=400, detail="Цена товара не может быть отрицательной")
+        if item.quantity <= 0:
+            raise HTTPException(status_code=400, detail="Количество товара должно быть больше нуля")
+        if item.product_id is not None and db.query(Product.id).filter(Product.id == item.product_id).first() is None:
+            raise HTTPException(status_code=400, detail=f"Товар с ID {item.product_id} не найден")
 
 
 def _validate_operation_form(
@@ -295,11 +338,20 @@ async def operation_create(request: Request, db: Session = Depends(get_db)):
         items=items,
     )
 
-    amount = Decimal(data.get("amount") or "0")
+    amount = _parse_decimal(data.get("amount"), default="0", field_name="Сумма")
     if kind == "expense" and category.requires_products and items:
         calculated = sum(item.price * item.quantity for item in items)
         if amount == 0:
             amount = calculated
+    _validate_operation_data(
+        db,
+        category=category,
+        kind=kind,
+        amount=amount,
+        supplier_id=supplier_id,
+        employee_id=employee_id,
+        items=items,
+    )
 
     operation = Operation(
         date=date.fromisoformat(data["date"]),
@@ -380,11 +432,20 @@ async def operation_update(
     operation.employee_id = employee_id
     operation.responsible = responsible
 
-    amount = Decimal(data.get("amount") or "0")
+    amount = _parse_decimal(data.get("amount"), default="0", field_name="Сумма")
     if kind == "expense" and category.requires_products and items:
         calculated = sum(item.price * item.quantity for item in items)
         if amount == 0:
             amount = calculated
+    _validate_operation_data(
+        db,
+        category=category,
+        kind=kind,
+        amount=amount,
+        supplier_id=supplier_id,
+        employee_id=employee_id,
+        items=items,
+    )
     operation.amount = amount
 
     # Пересоздаём строки продуктов
@@ -477,6 +538,40 @@ async def api_operations_get(operation_id: int, db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 async def api_operations_create(data: OperationCreate, db: Session = Depends(get_db)):
+    category = db.query(Category).filter(Category.id == data.category_id).first()
+    if category is None:
+        raise HTTPException(status_code=400, detail="Категория не найдена")
+
+    items = [
+        OperationItem(
+            product_id=item.product_id,
+            name=item.name,
+            price=item.price,
+            quantity=item.quantity,
+            unit=item.unit,
+        )
+        for item in data.items
+    ]
+    _validate_operation_form(
+        category=category,
+        kind=data.kind,
+        guests_count=data.guests_count,
+        payment_method=data.payment_method,
+        supplier_id=data.supplier_id,
+        employee_id=data.employee_id,
+        responsible=data.responsible,
+        items=items,
+    )
+    _validate_operation_data(
+        db,
+        category=category,
+        kind=data.kind,
+        amount=data.amount,
+        supplier_id=data.supplier_id,
+        employee_id=data.employee_id,
+        items=items,
+    )
+
     operation = Operation(
         date=data.date,
         kind=data.kind,
@@ -491,17 +586,9 @@ async def api_operations_create(data: OperationCreate, db: Session = Depends(get
     )
     db.add(operation)
     db.flush()
-    for item in data.items:
-        db.add(
-            OperationItem(
-                operation_id=operation.id,
-                product_id=item.product_id,
-                name=item.name,
-                price=item.price,
-                quantity=item.quantity,
-                unit=item.unit,
-            )
-        )
+    for item in items:
+        item.operation_id = operation.id
+        db.add(item)
     _log_change(db, "operation", operation.id, "create")
     db.commit()
     db.refresh(operation)
