@@ -1,6 +1,7 @@
 """Сервис синхронизации операций с Google Sheets в формате отчёта P&L."""
 import json
 import logging
+import time
 from pathlib import Path
 
 import gspread
@@ -88,6 +89,22 @@ def log_sync_attempt(
     db.commit()
 
 
+
+def _retry_google_request(action, *, attempts: int = 5):
+    """Повторяет временные ошибки квоты/сервера Google с экспоненциальной паузой."""
+    for attempt in range(attempts):
+        try:
+            return action()
+        except gspread.exceptions.APIError as exc:
+            response = getattr(exc, "response", None)
+            status = getattr(response, "status_code", None)
+            if status not in {429, 500, 502, 503, 504} or attempt == attempts - 1:
+                raise
+            delay = min(2 ** attempt, 16)
+            logger.warning("Google Sheets API вернул %s; повтор через %s сек. (%s/%s)", status, delay, attempt + 1, attempts)
+            time.sleep(delay)
+
+
 def _get_or_create_worksheet(spreadsheet, title: str, rows: int = 1000, cols: int = 30):
     try:
         return spreadsheet.worksheet(title)
@@ -105,101 +122,135 @@ def _col_letter(col: int) -> str:
 
 
 def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
-    """Применяет форматирование к листу отчёта."""
+    """Форматирует отчёт одним пакетным запросом вместо десятков запросов."""
     months = report.months
     num_months = len(months)
     num_data_rows = len(matrix)
+    sheet_id = worksheet.id
+    requests: list[dict] = []
 
-    # 1. Объединить ячейки заголовков месяцев (первая строка)
-    # Структура: A1 пустая, B1=месяц1, C1 пустая, D1=месяц2, E1 пустая, ...
+    # Заголовок и объединение ячеек месяцев.
     for i, _ in enumerate(months):
-        start_col = 2 + i * 2
-        end_col = start_col + 1
-        try:
-            worksheet.merge_cells(1, start_col, 1, end_col)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Не удалось объединить ячейки заголовка: %s", exc)
+        start_col = 1 + i * 2  # zero-based: B, D, F...
+        requests.append({
+            "mergeCells": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 0,
+                    "endRowIndex": 1,
+                    "startColumnIndex": start_col,
+                    "endColumnIndex": start_col + 2,
+                },
+                "mergeType": "MERGE_ALL",
+            }
+        })
 
-    # 2. Форматирование заголовков (первая и вторая строки)
     last_col = 1 + num_months * 2
-    header_range = f"A1:{_col_letter(last_col)}2"
-    try:
-        worksheet.format(
-            header_range,
-            {
+    requests.append({
+        "repeatCell": {
+            "range": {"sheetId": sheet_id, "startRowIndex": 0, "endRowIndex": min(2, num_data_rows), "startColumnIndex": 0, "endColumnIndex": last_col},
+            "cell": {"userEnteredFormat": {
                 "textFormat": {"bold": True},
                 "backgroundColor": {"red": 0.85, "green": 0.85, "blue": 0.85},
                 "horizontalAlignment": "CENTER",
-            },
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Не удалось применить форматирование заголовков: %s", exc)
+            }},
+            "fields": "userEnteredFormat(textFormat.bold,backgroundColor,horizontalAlignment)",
+        }
+    })
 
-    # 3. Числовые форматы для столбцов сумм и процентов
-    sum_cols = [2 + i * 2 for i in range(num_months)]
-    pct_cols = [3 + i * 2 for i in range(num_months)]
+    # Числовые форматы столбцов сумм и процентов.
+    for i in range(num_months):
+        sum_col = 1 + i * 2
+        pct_col = sum_col + 1
+        if num_data_rows > 2:
+            requests.append({
+                "repeatCell": {
+                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": sum_col, "endColumnIndex": sum_col + 1},
+                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "NUMBER", "pattern": "#,##0.00 ₽"}}},
+                    "fields": "userEnteredFormat.numberFormat",
+                }
+            })
+            requests.append({
+                "repeatCell": {
+                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": pct_col, "endColumnIndex": pct_col + 1},
+                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}}},
+                    "fields": "userEnteredFormat.numberFormat",
+                }
+            })
 
-    for col in sum_cols:
-        col_letter = _col_letter(col)
-        try:
-            worksheet.format(
-                f"{col_letter}3:{col_letter}{num_data_rows}",
-                {"numberFormat": {"type": "NUMBER", "pattern": "#,##0.00 ₽"}},
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Не удалось задать формат валюты: %s", exc)
-
-    for col in pct_cols:
-        col_letter = _col_letter(col)
-        try:
-            worksheet.format(
-                f"{col_letter}3:{col_letter}{num_data_rows}",
-                {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}},
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Не удалось задать формат процента: %s", exc)
-
-    # 4. Форматирование строк отчёта (жирный, фон)
-    flat_rows: list[tuple[int, ReportRow]] = []
-
-    def _collect_rows(row: ReportRow, current_idx: int) -> int:
-        flat_rows.append((current_idx, row))
-        current_idx += 1
+    # Сгруппировать подряд идущие строки с одинаковым стилем в один запрос.
+    flat_rows: list[ReportRow] = []
+    def collect(row: ReportRow) -> None:
+        flat_rows.append(row)
         for sub in row.subrows:
-            flat_rows.append((current_idx, sub))
-            current_idx += 1
-        return current_idx
-
-    current = 3
+            collect(sub)
     for row in report.rows:
-        current = _collect_rows(row, current)
+        collect(row)
 
-    for row_idx, row in flat_rows:
-        # Форматируем всю строку до конца месяцев (колонка B + пары сумма/%)
-        row_end_col = _col_letter(last_col)
-        range_full = f"A{row_idx}:{row_end_col}{row_idx}"
-        try:
-            fmt: dict = {"textFormat": {"bold": row.bold}}
-            if row.background == "yellow":
-                fmt["backgroundColor"] = {"red": 1.0, "green": 0.95, "blue": 0.8}
-            elif row.background == "blue":
-                fmt["backgroundColor"] = {"red": 0.85, "green": 0.92, "blue": 1.0}
-            elif row.background == "green":
-                fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
+    def style_key(row: ReportRow) -> tuple:
+        return (bool(row.bold), row.background, bool(row.section in {"direct", "overhead"} and row.level >= 2))
 
-            worksheet.format(range_full, fmt)
+    idx = 0
+    while idx < len(flat_rows):
+        key = style_key(flat_rows[idx])
+        end = idx + 1
+        while end < len(flat_rows) and style_key(flat_rows[end]) == key:
+            end += 1
+        bold, background, italic = key
+        fmt: dict = {"textFormat": {"bold": bold}}
+        fields = ["userEnteredFormat.textFormat.bold"]
+        if background == "yellow":
+            fmt["backgroundColor"] = {"red": 1.0, "green": 0.95, "blue": 0.8}
+            fields.append("userEnteredFormat.backgroundColor")
+        elif background == "blue":
+            fmt["backgroundColor"] = {"red": 0.85, "green": 0.92, "blue": 1.0}
+            fields.append("userEnteredFormat.backgroundColor")
+        elif background == "green":
+            fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
+            fields.append("userEnteredFormat.backgroundColor")
+        if italic:
+            fmt["textFormat"]["italic"] = True
+            fields.append("userEnteredFormat.textFormat.italic")
+        requests.append({
+            "repeatCell": {
+                "range": {"sheetId": sheet_id, "startRowIndex": idx + 2, "endRowIndex": end + 2, "startColumnIndex": 0, "endColumnIndex": last_col},
+                "cell": {"userEnteredFormat": fmt},
+                "fields": ",".join(fields),
+            }
+        })
+        idx = end
 
-            if row.section in {"direct", "overhead"} and row.level >= 2:
-                worksheet.format(f"A{row_idx}:{row_end_col}{row_idx}", {"textFormat": {"italic": True}})
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Не удалось применить форматирование строки %s: %s", row_idx, exc)
+    # Автоподбор ширины столбцов — тоже в том же batchUpdate.
+    requests.append({"autoResizeDimensions": {"dimensions": {"sheetId": sheet_id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": last_col}}})
+    if requests:
+        _retry_google_request(lambda: worksheet.spreadsheet.batch_update({"requests": requests}))
 
-    # 5. Ширина столбцов
-    try:
-        worksheet.columns_auto_resize(1, last_col)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Не удалось автоматически изменить ширину столбцов: %s", exc)
 
+def _write_matrix_chunked(worksheet, matrix: list[list], *, chunk_size: int = 400) -> None:
+    """Расширяет лист при необходимости и пишет данные небольшими порциями."""
+    if not matrix:
+        return
+    width = max((len(row) for row in matrix), default=1)
+    # Листы создаются с запасом, но при превышении размера сетки расширяем их.
+    current_rows = getattr(worksheet, "row_count", 0)
+    current_cols = getattr(worksheet, "col_count", 0)
+    target_rows = max(len(matrix), current_rows if isinstance(current_rows, int) else 0, 1)
+    target_cols = max(width, current_cols if isinstance(current_cols, int) else 0, 1)
+    if (not isinstance(current_rows, int) or target_rows > current_rows or
+            not isinstance(current_cols, int) or target_cols > current_cols):
+        worksheet.resize(rows=target_rows, cols=target_cols)
+
+    # Записываем максимум 400 строк за запрос, чтобы не упираться в лимит размера тела API.
+    for offset in range(0, len(matrix), chunk_size):
+        chunk = matrix[offset:offset + chunk_size]
+        start_row = offset + 1
+        end_row = offset + len(chunk)
+        end_col = _col_letter(width)
+        _retry_google_request(lambda: worksheet.update(
+            chunk,
+            range_name=f"A{start_row}:{end_col}{end_row}",
+            value_input_option="USER_ENTERED",
+        ))
 
 def _build_operations_matrix(db: Session) -> list[list[object]]:
     """Возвращает матрицу для листа с полным перечнем операций."""
@@ -308,7 +359,7 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
                 spreadsheet, REPORT_SHEET_TITLE
             )
             report_worksheet.clear()
-            report_worksheet.update(report_matrix, value_input_option="USER_ENTERED")
+            _write_matrix_chunked(report_worksheet, report_matrix)
             _format_report_sheet(report_worksheet, report, report_matrix)
             report_synced = True
         except gspread.exceptions.APIError as exc:
@@ -332,10 +383,7 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
                 pass
 
             operations_worksheet.clear()
-            operations_worksheet.update(
-                operations_matrix,
-                value_input_option="USER_ENTERED",
-            )
+            _write_matrix_chunked(operations_worksheet, operations_matrix)
             operations_worksheet.freeze(rows=2)
             operations_worksheet.set_basic_filter()
             operations_synced = True
