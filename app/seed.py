@@ -5,11 +5,15 @@ from app.models import Category, Employee, ReportGroup
 
 
 # Простые группы отчёта P&L. Порядок = порядок в выгрузке.
+# Имена категорий важны: лист «Отчет» считает суммы формулой SUMIFS
+# по листу «Операции», где условие — точное имя категории.
 REPORT_GROUPS_SEED: list[tuple[str, str, int]] = [
     ("Доход", "revenue", 10),
+    ("Доход туроператора", "touroperator", 15),
     ("Прямой расход", "direct", 20),
     ("Накладные расходы", "overhead", 30),
     ("Налоги и сборы", "taxes", 40),
+    ("Вне финансового результата", "outside", 50),
 ]
 
 
@@ -65,6 +69,21 @@ def _get_or_create_category(
     return category
 
 
+def _rename_category(session: Session, old_name: str, new_name: str, kind: str) -> None:
+    """Переименовывает категорию, сохраняя уже внесённые операции.
+
+    Лист «Отчет» матчит SUMIFS по имени категории, поэтому опечатку в
+    справочнике нужно исправить, а не дублировать категорию новым именем.
+    """
+    existing = session.query(Category).filter_by(name=new_name, kind=kind).first()
+    if existing:
+        return
+    category = session.query(Category).filter_by(name=old_name, kind=kind).first()
+    if category:
+        category.name = new_name
+        session.flush()
+
+
 def _get_or_create_employee(session: Session, name: str) -> Employee:
     employee = session.query(Employee).filter_by(name=name).first()
     if employee:
@@ -82,15 +101,19 @@ def seed_db(session: Session) -> None:
         for name, section, sort_order in REPORT_GROUPS_SEED
     }
     income = groups["Доход"]
+    tour = groups["Доход туроператора"]
     direct = groups["Прямой расход"]
     overhead = groups["Накладные расходы"]
     taxes = groups["Налоги и сборы"]
+    outside = groups["Вне финансового результата"]
 
     # Доходы
     income_categories = [
         ("Лавка", {"requires_guests": True}),
         ("Кейтеринг", {"requires_guests": True}),
         ("Открытые события", {"requires_guests": True}),
+        ("Мероприятия (обеды и ужины)", {"requires_guests": True}),
+        ("Аренда", {"requires_guests": False}),
     ]
 
     for name, flags in income_categories:
@@ -173,13 +196,18 @@ def seed_db(session: Session) -> None:
         )
 
     # Остальные прямые расходы
+    # «Операционные расходы» — исправленная опечатка прежнего справочника:
+    # SUMIFS отчёта ищет категорию по точному имени.
+    _rename_category(session, "Опреционные расходы", "Операционные расходы", "expense")
     direct_expenses = [
         ("Себестоимость кейтеринга", {}),
         ("Корм для животных", {}),
         ("Бензин", {}),
         ("Служебное питание", {}),
         ("Зарплата сотрудникам", {"requires_employee": True}),
-        ("Опреционные расходы", {}),
+        ("Операционные расходы", {}),
+        ("Продукты", {}),
+        ("Продукты для производства колбасы", {}),
         ("Прочие прямые расходы", {}),
     ]
     for name, flags in direct_expenses:
@@ -200,7 +228,10 @@ def seed_db(session: Session) -> None:
         "ИТ",
         "Коммунальные платежи",
         "Финансы",
+        "Финансовые услуги",
+        "Хостинг",
         "Маркетинг",
+        "Списание маркетинг — подарки",
         "Оборудование и инвентарь",
         "Аренда помещения",
         "Прочие накладные расходы",
@@ -242,6 +273,23 @@ def seed_db(session: Session) -> None:
         name="Налоги и сборы",
         kind="expense",
         report_group=taxes,
+    )
+
+    # Доходы туроператора — отдельный разрез операционной прибыли.
+    _get_or_create_category(
+        session,
+        name="Доход туроператор",
+        kind="income",
+        report_group=tour,
+        requires_payment_method=True,
+    )
+
+    # Арт-парк учитывается вне финансового результата фермы.
+    _get_or_create_category(
+        session,
+        name="Арт-парк",
+        kind="expense",
+        report_group=outside,
     )
 
     # Сотрудники

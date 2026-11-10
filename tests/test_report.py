@@ -1,6 +1,11 @@
 """Тесты генерации отчёта P&L."""
 import app.database as database_module
 from app.services.report import build_report, report_to_matrix
+from app.services.report import (
+    ARTICLE_COLUMN_LABEL,
+    REFERENCE_TITLE,
+    TOTAL_COLUMN_LABEL,
+)
 
 
 def _find_category_id(client, kind, name):
@@ -16,7 +21,7 @@ def test_build_report_totals(client):
     client.post("/login", data={"password": "admin"})
 
     lavka_id = _find_category_id(client, "income", "Лавка")
-    products_id = _find_category_id(client, "expense", "Закупка продуктов")
+    fuel_id = _find_category_id(client, "expense", "Бензин")
     wifi_id = _find_category_id(client, "expense", "WiFi")
     taxes_id = _find_category_id(client, "expense", "Налоги и сборы")
 
@@ -29,6 +34,7 @@ def test_build_report_totals(client):
             "category_id": lavka_id,
             "amount": "1000.00",
             "payment_method": "cash",
+            "guests_count": 4,
         },
     )
 
@@ -38,9 +44,9 @@ def test_build_report_totals(client):
         json={
             "date": "2024-06-20",
             "kind": "expense",
-            "category_id": products_id,
+            "category_id": fuel_id,
             "amount": "300.00",
-            "comment": "продукты",
+            "comment": "топливо",
         },
     )
     client.post(
@@ -81,7 +87,7 @@ def test_build_report_totals(client):
     assert lavka_row.values[0].percent == 100
     # Категория «Лавка» внутри группы «Доход»
     assert any(sub.label == "· Лавка" for sub in lavka_row.subrows)
-    assert any(sub.label == "· Закупка продуктов" for sub in rows_by_label["Прямой расход"].subrows)
+    assert any(sub.label == "· Бензин" for sub in rows_by_label["Прямой расход"].subrows)
 
     direct_section = rows_by_label["Прямые расходы"]
     assert direct_section.values[0].amount == 300
@@ -117,6 +123,7 @@ def test_report_matrix_shape(client):
             "category_id": lavka_id,
             "amount": "500.00",
             "payment_method": "cash",
+            "guests_count": 2,
         },
     )
 
@@ -127,17 +134,29 @@ def test_report_matrix_shape(client):
     finally:
         db.close()
 
-    # Первая строка: пустая + по 2 ячейки на месяц
-    assert len(matrix[0]) == 1 + len(report.months) * 2
-    # Вторая строка: пустая + сумма/%
-    assert matrix[1][1] == "сумма"
-    assert matrix[1][2] == "%"
-    # Хотя бы одна строка данных
-    assert len(matrix) > 2
-    assert any(row[0] == "· Лавка" for row in matrix)
+    n_months = len(report.months)
+    # Эталонный лист: 61 строка, столбец статьи + один столбец на месяц + ИТОГО.
+    assert len(matrix) == 61
+    assert all(len(row) == 1 + n_months + 1 for row in matrix)
+
+    # Строки 1–3: заголовок документа, подзаголовок, шапка столбцов.
+    assert matrix[0][0] == REFERENCE_TITLE
+    assert matrix[2][0] == ARTICLE_COLUMN_LABEL
+    assert matrix[2][-1] == TOTAL_COLUMN_LABEL
+    # Заголовки месяцев — даты первого числа: источник условий SUMIFS.
+    assert matrix[2][1] == "2024-07-01"
+
+    # Строки данных: одна строка на статью, имя категории без префикса.
+    assert any(row[0] == "Лавка" for row in matrix)
+
+    lavka_row = next(row for row in matrix if row[0] == "Лавка")
+    assert lavka_row[1].startswith("=SUMIFS(Операции!")
+    assert '"Доход"' in lavka_row[1]
+    assert '"Лавка"' in lavka_row[1]
+    assert "EDATE(" in lavka_row[1]
 
 
-def test_revenue_total_percent_is_not_circular(client):
+def test_report_matrix_revenue_total(client):
     client.post("/login", data={"password": "admin"})
 
     lavka_id = _find_category_id(client, "income", "Лавка")
@@ -149,6 +168,7 @@ def test_revenue_total_percent_is_not_circular(client):
             "category_id": lavka_id,
             "amount": "250.00",
             "payment_method": "cash",
+            "guests_count": 3,
         },
     )
 
@@ -159,8 +179,12 @@ def test_revenue_total_percent_is_not_circular(client):
     finally:
         db.close()
 
-    revenue_row = next(row for row in matrix if row[0] == "Выручка всего")
-    assert revenue_row[2] == 1
+    revenue_row = next(row for row in matrix if row[0] == "ВЫРУЧКА ГАСТРОФЕРМЫ")
+    # Итог — формула, суммирующая месячные столбцы.
+    assert revenue_row[-1].startswith("=SUM(")
+    assert revenue_row[-1].endswith(")")
+    # Секция суммирует детальные строки выручки (5–9), а не числа Python.
+    assert revenue_row[1] == "=SUM(B5:B9)"
 
 
 def test_investment_tab_and_report_row(client):
@@ -194,4 +218,5 @@ def test_investment_tab_and_report_row(client):
 
     matrix = report_to_matrix(report)
     investment_matrix_row = next(row for row in matrix if row[0] == "Инвестиции")
-    assert investment_matrix_row[1] == 12500.5
+    # Итого — сумма всех инвестиций за весь период.
+    assert investment_matrix_row[-1] == "=SUM(Инвестиции!$B$2:$B$1000)"

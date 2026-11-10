@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Если задано — имеет приоритет над GOOGLE_SA_FILE.
     GOOGLE_SA_JSON: str = ""
     GOOGLE_SPREADSHEET_ID: str = ""
+    # Разделитель аргументов в формулах Google Sheets. Зависит от локали
+    # таблицы:русская локаль — «;», английская — «,». Отчёт построен на
+    # живых SUMIFS/EDATE, поэтому разделитель должен совпадать с локалью.
+    GOOGLE_FORMULA_SEPARATOR: str = ";"
     SYNC_ENABLED: bool = False
     SYNC_SCHEDULE: str = "0 * * * *"
 

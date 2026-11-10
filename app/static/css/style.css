@@ -232,22 +232,60 @@ h1, h2 {
     background: var(--bg);
     font-weight: 600;
 }
-.operations-table th.operation-actions-header,
-.operations-table td.operation-actions-cell {
-    position: sticky;
-    left: 0;
-    min-width: 150px;
-}
-.operations-table th.operation-actions-header {
-    z-index: 2;
-    background: var(--bg);
-}
 .operations-table td.operation-actions-cell {
     display: table-cell;
+    position: sticky;
+    right: 0;
     z-index: 1;
     background: var(--surface);
     white-space: nowrap;
     text-align: center;
+}
+.operations-table table {
+    table-layout: fixed;
+    min-width: 860px;
+}
+.operations-table .operation-date-column { width: 100px; }
+.operations-table .operation-kind-column { width: 70px; }
+.operations-table .operation-category-column { width: 150px; }
+.operations-table .operation-amount-column { width: 100px; }
+.operations-table .operation-comment-column { width: 220px; }
+.operations-table .operation-details-column { width: 100px; }
+.operations-table .operation-actions-column { width: 170px; }
+.operations-table td.operation-category,
+.operations-table td.operation-comment {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.operations-table .operation-details {
+    position: relative;
+    white-space: normal;
+}
+.operations-table .operation-details summary {
+    color: var(--primary);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.operations-table .operation-details dl {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+    width: auto;
+    margin: 0.35rem 0 0;
+    padding: 0;
+}
+.operations-table .operation-details dt {
+    color: var(--muted);
+    font-weight: 600;
+}
+.operations-table .operation-details dt:not(:first-child) {
+    margin-top: 0.25rem;
+}
+.operations-table .operation-details dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 .operation-actions {
     display: flex;

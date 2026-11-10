@@ -9,7 +9,25 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, settings
 from app.models import Category, Investment, Operation, SyncLog
-from app.services.report import ReportRow, build_report, report_to_matrix
+from app.services.report import (
+    DATA_RANGE_LAST_ROW,
+    DATE_NUMBER_FORMAT,
+    DATE_FORMAT_TAIL_ROWS,
+    FREEZE_COLUMNS,
+    FREEZE_ROWS,
+    INVESTMENTS_SHEET_TITLE,
+    MONEY_NUMBER_FORMAT,
+    MONTH_NUMBER_FORMAT,
+    OPERATIONS_SHEET_TITLE,
+    REPORT_SHEET_TITLE,
+    STYLE_PALETTE,
+    WRITEOFFS_HEADERS,
+    WRITEOFFS_SHEET_TITLE,
+    ReportData,
+    build_report,
+    report_layout,
+    report_to_matrix,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +37,20 @@ PAYMENT_METHOD_LABELS = {
     "transfer": "Перевод",
 }
 
-REPORT_SHEET_TITLE = "Отчет"
-OPERATIONS_SHEET_TITLE = "Операции"
-INVESTMENTS_SHEET_TITLE = "Инвестиции"
+OPERATIONS_COLUMN_WIDTHS_PX = (
+    71, 119, 159, 159, 159, 159, 383, 68, 68, 68, 68, 68, 68, 68,
+)
+INVESTMENTS_COLUMN_WIDTHS_PX = (119, 159, 543)
+WRITEOFFS_COLUMN_WIDTHS_PX = (135, 167, 167, 167, 167, 167, 167, 167, 167, 167)
+REPORT_ROW_HEIGHTS_PX = {
+    35.0: 45,
+    24.0: 31,
+    27.0: 35,
+    29.0: 37,
+    13.9: 17,
+    20.0: 25,
+}
+
 
 
 def _safe_iso(value, timespec: str | None = None) -> str:
@@ -122,109 +151,346 @@ def _col_letter(col: int) -> str:
     return result
 
 
-def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
-    """Форматирует отчёт одним пакетным запросом вместо десятков запросов."""
-    months = report.months
-    num_months = len(months)
-    num_data_rows = len(matrix)
+def _rgb(hex_color: str) -> dict:
+    """Шестнадцатеричный RGB (без alpha) в цвет Google Sheets API."""
+    return {
+        "red": int(hex_color[0:2], 16) / 255,
+        "green": int(hex_color[2:4], 16) / 255,
+        "blue": int(hex_color[4:6], 16) / 255,
+    }
+
+
+# Стили эталонного листа «Отчет»: палитра report.py в запросы Google Sheets API.
+def _style_requests(sheet_id: int, style: str, start: int, end: int, last_col: int) -> list[dict]:
+    """Запросы оформления строк [start, end) в стиле эталона."""
+    spec = STYLE_PALETTE.get(style, {})
+    text_format: dict = {"fontFamily": "Carlito"}
+    fields = ["userEnteredFormat.textFormat.fontFamily"]
+
+    if "bold" in spec:
+        text_format["bold"] = spec["bold"]
+        fields.append("userEnteredFormat.textFormat.bold")
+    if "font_size" in spec:
+        text_format["fontSize"] = spec["font_size"]
+        fields.append("userEnteredFormat.textFormat.fontSize")
+    if "font_color" in spec:
+        text_format["foregroundColor"] = _rgb(spec["font_color"])
+        fields.append("userEnteredFormat.textFormat.foregroundColor")
+
+    user_format: dict = {"textFormat": text_format}
+    if "background" in spec:
+        user_format["backgroundColor"] = _rgb(spec["background"])
+        fields.append("userEnteredFormat.backgroundColor")
+
+    return [{
+        "repeatCell": {
+            "range": {
+                "sheetId": sheet_id,
+                "startRowIndex": start,
+                "endRowIndex": end,
+                "startColumnIndex": 0,
+                "endColumnIndex": last_col,
+            },
+            "cell": {"userEnteredFormat": user_format},
+            "fields": ",".join(fields),
+        }
+    }]
+
+
+def _format_report_sheet(worksheet, report: ReportData, matrix: list[list]) -> None:
+    """Оформляет лист «Отчет» по эталону: палитра, высоты, ширины, freeze B10.
+
+    Объединения ячеек и автофильтр не ставятся — в эталоне их нет, а
+    один столбец на месяц в них не нуждается.
+    """
+    if not matrix:
+        return
+
+    last_col = max(len(row) for row in matrix)
+    num_rows = min(len(matrix), len(report_layout()))
     sheet_id = worksheet.id
     requests: list[dict] = []
+    layout = report_layout()
 
-    # Заголовок и объединение ячеек месяцев.
-    for i, _ in enumerate(months):
-        start_col = 1 + i * 2  # zero-based: B, D, F...
+    # 1. Оформление строк: подряд идущие строки одного стиля — одним запросом.
+    idx = 0
+    while idx < num_rows:
+        style = layout[idx]["style"]
+        end = idx + 1
+        while end < num_rows and layout[end]["style"] == style:
+            end += 1
+        requests.extend(_style_requests(sheet_id, style, idx, end, last_col))
+        idx = end
+
+    # 2. Денежный формат месяцев и итога; заголовки месяцев — формат даты.
+    money_start = None
+    for i in range(num_rows + 1):
+        money = i < num_rows and layout[i]["money"]
+        if money and money_start is None:
+            money_start = i
+        elif not money and money_start is not None:
+            requests.append({
+                "repeatCell": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "startRowIndex": money_start,
+                        "endRowIndex": i,
+                        "startColumnIndex": 1,
+                        "endColumnIndex": last_col,
+                    },
+                    "cell": {"userEnteredFormat": {"numberFormat": {
+                        "type": "NUMBER",
+                        "pattern": MONEY_NUMBER_FORMAT,
+                    }}},
+                    "fields": "userEnteredFormat.numberFormat",
+                }
+            })
+            money_start = None
+
+    if num_rows >= 3:
         requests.append({
-            "mergeCells": {
+            "repeatCell": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 2,
+                    "endRowIndex": 3,
+                    "startColumnIndex": 1,
+                    "endColumnIndex": max(last_col - 1, 1),
+                },
+                "cell": {"userEnteredFormat": {"numberFormat": {
+                    "type": "DATE",
+                    "pattern": MONTH_NUMBER_FORMAT,
+                }}},
+                "fields": "userEnteredFormat.numberFormat",
+            }
+        })
+
+    # 3. Высоты строк: Excel оперирует пунктами, Sheets — пикселями (1pt = 4/3 px).
+    height_start = None
+    for i in range(num_rows + 1):
+        height = layout[i]["height"] if i < num_rows else None
+        previous = layout[height_start]["height"] if height_start is not None else None
+        if height_start is not None and height != previous:
+            requests.append({
+                "updateDimensionProperties": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "dimension": "ROWS",
+                        "startIndex": height_start,
+                        "endIndex": i,
+                    },
+                    "properties": {
+                        "pixelSize": REPORT_ROW_HEIGHTS_PX[previous],
+                    },
+                    "fields": "pixelSize",
+                }
+            })
+            height_start = i if height is not None else None
+        elif height_start is None and height is not None:
+            height_start = i
+        elif height is None and height_start is not None:
+            height_start = None
+
+    # 4. Закрепление области B10 и ширины столбцов A и B.
+    requests.append({
+        "updateSheetProperties": {
+            "properties": {
+                "sheetId": sheet_id,
+                "gridProperties": {
+                    "frozenRowCount": FREEZE_ROWS,
+                    "frozenColumnCount": FREEZE_COLUMNS,
+                },
+            },
+            "fields": "gridProperties.frozenRowCount,gridProperties.frozenColumnCount",
+        }
+    })
+
+    report_column_widths = [(0, 1, 463)]
+    if last_col > 1:
+        report_column_widths.append((1, last_col, 167))
+    for start_column, end_column, pixel_size in report_column_widths:
+        requests.append({
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": start_column,
+                    "endIndex": end_column,
+                },
+                "properties": {"pixelSize": pixel_size},
+                "fields": "pixelSize",
+            }
+        })
+
+    if requests:
+        _retry_google_request(lambda: worksheet.spreadsheet.batch_update({"requests": requests}))
+
+
+def _format_data_sheet(
+    worksheet,
+    column_count: int,
+    populated_rows: int,
+    column_widths: tuple[int, ...],
+    *,
+    tail_rows: int = DATE_FORMAT_TAIL_ROWS,
+) -> None:
+    """Форматирует лист данных и размеры ячеек по HTML-образцу."""
+    if len(column_widths) < column_count:
+        raise ValueError("Не заданы ширины всех столбцов листа")
+
+    end_row = max(DATA_RANGE_LAST_ROW, populated_rows + tail_rows)
+    current_rows = getattr(worksheet, "row_count", None)
+    current_cols = getattr(worksheet, "col_count", None)
+
+    resize_rows = (
+        max(end_row, current_rows)
+        if isinstance(current_rows, int)
+        else end_row
+    )
+    resize_cols = (
+        max(column_count, current_cols)
+        if isinstance(current_cols, int)
+        else column_count
+    )
+    if (
+        (isinstance(current_rows, int) and resize_rows > current_rows)
+        or (isinstance(current_cols, int) and resize_cols > current_cols)
+    ):
+        worksheet.resize(rows=resize_rows, cols=resize_cols)
+
+    sheet_id = worksheet.id
+    requests = [
+        {
+            "repeatCell": {
                 "range": {
                     "sheetId": sheet_id,
                     "startRowIndex": 0,
                     "endRowIndex": 1,
-                    "startColumnIndex": start_col,
-                    "endColumnIndex": start_col + 2,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": column_count,
                 },
-                "mergeType": "MERGE_ALL",
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": _rgb("1B392C"),
+                        "textFormat": {
+                            "fontFamily": "Carlito",
+                            "fontSize": 11,
+                            "bold": True,
+                            "foregroundColor": _rgb("FFFFFF"),
+                        },
+                    }
+                },
+                "fields": (
+                    "userEnteredFormat.backgroundColor,"
+                    "userEnteredFormat.textFormat.fontFamily,"
+                    "userEnteredFormat.textFormat.fontSize,"
+                    "userEnteredFormat.textFormat.bold,"
+                    "userEnteredFormat.textFormat.foregroundColor"
+                ),
             }
-        })
-
-    last_col = 1 + num_months * 2
-    requests.append({
-        "repeatCell": {
-            "range": {"sheetId": sheet_id, "startRowIndex": 0, "endRowIndex": min(2, num_data_rows), "startColumnIndex": 0, "endColumnIndex": last_col},
-            "cell": {"userEnteredFormat": {
-                "textFormat": {"bold": True},
-                "backgroundColor": {"red": 0.85, "green": 0.85, "blue": 0.85},
-                "horizontalAlignment": "CENTER",
-            }},
-            "fields": "userEnteredFormat(textFormat.bold,backgroundColor,horizontalAlignment)",
-        }
-    })
-
-    # Числовые форматы столбцов сумм и процентов.
-    for i in range(num_months):
-        sum_col = 1 + i * 2
-        pct_col = sum_col + 1
-        if num_data_rows > 2:
-            requests.append({
-                "repeatCell": {
-                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": sum_col, "endColumnIndex": sum_col + 1},
-                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "NUMBER", "pattern": "#,##0.00 ₽"}}},
-                    "fields": "userEnteredFormat.numberFormat",
-                }
-            })
-            requests.append({
-                "repeatCell": {
-                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": pct_col, "endColumnIndex": pct_col + 1},
-                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}}},
-                    "fields": "userEnteredFormat.numberFormat",
-                }
-            })
-
-    # Сгруппировать подряд идущие строки с одинаковым стилем в один запрос.
-    flat_rows: list[ReportRow] = []
-    def collect(row: ReportRow) -> None:
-        flat_rows.append(row)
-        for sub in row.subrows:
-            collect(sub)
-    for row in report.rows:
-        collect(row)
-
-    def style_key(row: ReportRow) -> tuple:
-        return (bool(row.bold), row.background, bool(row.section in {"direct", "overhead"} and row.level >= 2))
-
-    idx = 0
-    while idx < len(flat_rows):
-        key = style_key(flat_rows[idx])
-        end = idx + 1
-        while end < len(flat_rows) and style_key(flat_rows[end]) == key:
-            end += 1
-        bold, background, italic = key
-        fmt: dict = {"textFormat": {"bold": bold}}
-        fields = ["userEnteredFormat.textFormat.bold"]
-        if background == "yellow":
-            fmt["backgroundColor"] = {"red": 1.0, "green": 0.95, "blue": 0.8}
-            fields.append("userEnteredFormat.backgroundColor")
-        elif background == "blue":
-            fmt["backgroundColor"] = {"red": 0.85, "green": 0.92, "blue": 1.0}
-            fields.append("userEnteredFormat.backgroundColor")
-        elif background == "green":
-            fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
-            fields.append("userEnteredFormat.backgroundColor")
-        if italic:
-            fmt["textFormat"]["italic"] = True
-            fields.append("userEnteredFormat.textFormat.italic")
-        requests.append({
+        },
+        {
             "repeatCell": {
-                "range": {"sheetId": sheet_id, "startRowIndex": idx + 2, "endRowIndex": end + 2, "startColumnIndex": 0, "endColumnIndex": last_col},
-                "cell": {"userEnteredFormat": fmt},
-                "fields": ",".join(fields),
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": end_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": column_count,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": _rgb("FFFFFF"),
+                        "textFormat": {
+                            "fontFamily": "Carlito",
+                            "fontSize": 11,
+                        },
+                    }
+                },
+                "fields": (
+                    "userEnteredFormat.backgroundColor,"
+                    "userEnteredFormat.textFormat.fontFamily,"
+                    "userEnteredFormat.textFormat.fontSize"
+                ),
+            }
+        },
+    ]
+    requests.extend([
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "ROWS",
+                    "startIndex": 0,
+                    "endIndex": 1,
+                },
+                "properties": {"pixelSize": 33},
+                "fields": "pixelSize",
+            }
+        },
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "ROWS",
+                    "startIndex": 1,
+                    "endIndex": end_row,
+                },
+                "properties": {"pixelSize": 17},
+                "fields": "pixelSize",
+            }
+        },
+    ])
+    column_index = 0
+    while column_index < column_count:
+        column_end = column_index + 1
+        while (
+            column_end < column_count
+            and column_widths[column_end] == column_widths[column_index]
+        ):
+            column_end += 1
+        requests.append({
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": column_index,
+                    "endIndex": column_end,
+                },
+                "properties": {"pixelSize": column_widths[column_index]},
+                "fields": "pixelSize",
             }
         })
-        idx = end
+        column_index = column_end
 
-    # Автоподбор ширины столбцов — тоже в том же batchUpdate.
-    requests.append({"autoResizeDimensions": {"dimensions": {"sheetId": sheet_id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": last_col}}})
-    if requests:
-        _retry_google_request(lambda: worksheet.spreadsheet.batch_update({"requests": requests}))
+    _retry_google_request(
+        lambda: worksheet.spreadsheet.batch_update({"requests": requests})
+    )
+
+
+def _apply_date_format(worksheet, column_index: int, first_row: int, last_row: int) -> None:
+    """Ставит формат dd.mm.yyyy на столбец дат листа данных."""
+    if last_row < first_row:
+        return
+    _retry_google_request(lambda: worksheet.spreadsheet.batch_update({
+        "requests": [{
+            "repeatCell": {
+                "range": {
+                    "sheetId": worksheet.id,
+                    "startRowIndex": first_row - 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": column_index - 1,
+                    "endColumnIndex": column_index,
+                },
+                "cell": {"userEnteredFormat": {"numberFormat": {
+                    "type": "DATE",
+                    "pattern": DATE_NUMBER_FORMAT,
+                }}},
+                "fields": "userEnteredFormat.numberFormat",
+            }
+        }]
+    }))
+
 
 
 def _write_matrix_chunked(worksheet, matrix: list[list], *, chunk_size: int = 400) -> None:
@@ -331,8 +597,67 @@ def _build_investments_matrix(db: Session) -> list[list[object]]:
     ]
 
 
+def _ensure_writeoffs_sheet(spreadsheet) -> str:
+    """Гарантирует существование листа «Списания», не трогая данные заказчика.
+
+    Списания (съели сами / неуточненные / подарки) ведёт заказчик вручную,
+    в базе ERP их пока нет. Лист обязателен: строки 46 и 53 отчёта считают
+    его через SUMIFS, и без листа формулы дали бы #REF!.
+
+    Возвращает статус: "created" — лист создан и заполнен заголовками,
+    "seeded" — лист был пуст, записаны только заголовки,
+    "kept" — лист существует с данными, не тронут.
+    """
+    status = "seeded"
+    try:
+        worksheet = spreadsheet.worksheet(WRITEOFFS_SHEET_TITLE)
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = spreadsheet.add_worksheet(
+            title=WRITEOFFS_SHEET_TITLE,
+            rows=str(DATA_RANGE_LAST_ROW),
+            cols=str(len(WRITEOFFS_HEADERS)),
+        )
+        status = "created"
+
+    if status != "created":
+        try:
+            existing = worksheet.get_values()
+        except gspread.exceptions.APIError:
+            existing = None
+        if existing and any(any(cell for cell in row) for row in existing):
+            _format_data_sheet(
+                worksheet,
+                len(WRITEOFFS_HEADERS),
+                worksheet.row_count
+                if isinstance(getattr(worksheet, "row_count", None), int)
+                else DATA_RANGE_LAST_ROW,
+                WRITEOFFS_COLUMN_WIDTHS_PX,
+                tail_rows=0,
+            )
+            return "kept"
+
+    header_range = f"A1:{_col_letter(len(WRITEOFFS_HEADERS))}1"
+    _retry_google_request(lambda: worksheet.update(
+        [WRITEOFFS_HEADERS],
+        range_name=header_range,
+        value_input_option="USER_ENTERED",
+    ))
+    worksheet.freeze(rows=1)
+    _format_data_sheet(
+        worksheet,
+        len(WRITEOFFS_HEADERS),
+        worksheet.row_count
+        if isinstance(getattr(worksheet, "row_count", None), int)
+        else DATA_RANGE_LAST_ROW,
+        WRITEOFFS_COLUMN_WIDTHS_PX,
+        tail_rows=0,
+    )
+    return status
+
+
 def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
     """Выгружает P&L, операции и инвестиции в Google Sheets.
+
 
     Выгрузки независимы: ошибка одной не блокирует остальные. Если любая
     из них завершилась ошибкой, исключение поднимается после всех попыток.
@@ -354,7 +679,9 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
     try:
         report = build_report(db)
-        report_matrix = report_to_matrix(report)
+        report_matrix = report_to_matrix(
+            report, separator=settings.GOOGLE_FORMULA_SEPARATOR
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Не удалось построить отчёт P&L")
         errors.append(f"Отчёт P&L: {exc}")
@@ -374,6 +701,18 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
     report_synced = False
     operations_synced = False
     investments_synced = False
+    writeoffs_status = None
+
+    # Лист «Списания» готовим до отчёта: его строки 46 и 53 ссылаются на
+    # этот лист, и при отсутствии листа SUMIFS дали бы #REF!.
+    try:
+        writeoffs_status = _ensure_writeoffs_sheet(spreadsheet)
+    except gspread.exceptions.APIError as exc:
+        logger.exception("Ошибка Google Sheets API при подготовке листа списаний")
+        errors.append(f"Списания: ошибка Google Sheets API: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ошибка при подготовке листа списаний")
+        errors.append(f"Списания: {exc}")
 
     # Записываем отчёт независимо от результата подготовки операций.
     if report is not None and report_matrix is not None:
@@ -407,8 +746,20 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
             operations_worksheet.clear()
             _write_matrix_chunked(operations_worksheet, operations_matrix)
+            _format_data_sheet(
+                operations_worksheet,
+                max(len(row) for row in operations_matrix),
+                len(operations_matrix),
+                OPERATIONS_COLUMN_WIDTHS_PX,
+            )
             operations_worksheet.freeze(rows=2)
             operations_worksheet.set_basic_filter()
+            # Дата в столбце B — как в эталоне (dd.mm.yyyy); SUMIFS отчёта
+            # сравнивает её с датой месяца из строки 3, поэтому это должны
+            # быть настоящие даты, а не текст.
+            _apply_date_format(
+                operations_worksheet, 2, 3, len(operations_matrix) + DATE_FORMAT_TAIL_ROWS
+            )
             operations_synced = True
         except gspread.exceptions.APIError as exc:
             logger.exception("Ошибка Google Sheets API при записи операций")
@@ -428,8 +779,17 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
                 pass
             investments_worksheet.clear()
             _write_matrix_chunked(investments_worksheet, investments_matrix)
+            _format_data_sheet(
+                investments_worksheet,
+                max(len(row) for row in investments_matrix),
+                len(investments_matrix),
+                INVESTMENTS_COLUMN_WIDTHS_PX,
+            )
             investments_worksheet.freeze(rows=1)
             investments_worksheet.set_basic_filter()
+            _apply_date_format(
+                investments_worksheet, 1, 2, len(investments_matrix) + DATE_FORMAT_TAIL_ROWS
+            )
             investments_synced = True
         except gspread.exceptions.APIError as exc:
             logger.exception("Ошибка Google Sheets API при записи инвестиций")
@@ -446,13 +806,15 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
     result = {
         "synced": operations_count if operations_synced else 0,
-        "report_rows": max(0, len(report_matrix) - 2) if report_matrix is not None else 0,
+        "report_rows": len(report_matrix) if report_matrix is not None else 0,
         "operations_rows": operations_count if operations_synced else 0,
         "spreadsheet_id": spreadsheet_id,
         "sheet_title": REPORT_SHEET_TITLE,
         "operations_sheet_title": OPERATIONS_SHEET_TITLE,
         "investments_rows": investments_count if investments_synced else 0,
         "investments_sheet_title": INVESTMENTS_SHEET_TITLE,
+        "writeoffs_sheet_title": WRITEOFFS_SHEET_TITLE,
+        "writeoffs_status": writeoffs_status,
         "months": report.months if report is not None else [],
         "report_synced": report_synced,
         "operations_synced": operations_synced,
