@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import BASE_DIR, settings
 from app.models import Category, Investment, Operation, SyncLog
 from app.services.report import (
-    COLUMN_WIDTHS,
     DATA_RANGE_LAST_ROW,
     DATE_NUMBER_FORMAT,
     DATE_FORMAT_TAIL_ROWS,
@@ -36,6 +35,20 @@ PAYMENT_METHOD_LABELS = {
     "cash": "Нал",
     "card": "Б/нал",
     "transfer": "Перевод",
+}
+
+OPERATIONS_COLUMN_WIDTHS_PX = (
+    71, 119, 159, 159, 159, 159, 383, 68, 68, 68, 68, 68, 68, 68,
+)
+INVESTMENTS_COLUMN_WIDTHS_PX = (119, 159, 543)
+WRITEOFFS_COLUMN_WIDTHS_PX = (135, 167, 167, 167, 167, 167, 167, 167, 167, 167)
+REPORT_ROW_HEIGHTS_PX = {
+    35.0: 45,
+    24.0: 31,
+    27.0: 35,
+    29.0: 37,
+    13.9: 17,
+    20.0: 25,
 }
 
 
@@ -266,7 +279,9 @@ def _format_report_sheet(worksheet, report: ReportData, matrix: list[list]) -> N
                         "startIndex": height_start,
                         "endIndex": i,
                     },
-                    "properties": {"pixelSize": round(previous * 4 / 3)},
+                    "properties": {
+                        "pixelSize": REPORT_ROW_HEIGHTS_PX[previous],
+                    },
                     "fields": "pixelSize",
                 }
             })
@@ -290,24 +305,167 @@ def _format_report_sheet(worksheet, report: ReportData, matrix: list[list]) -> N
         }
     })
 
-    for letter, width in COLUMN_WIDTHS.items():
-        index = ord(letter) - 65
+    report_column_widths = [(0, 1, 463)]
+    if last_col > 1:
+        report_column_widths.append((1, last_col, 167))
+    for start_column, end_column, pixel_size in report_column_widths:
         requests.append({
             "updateDimensionProperties": {
                 "range": {
                     "sheetId": sheet_id,
                     "dimension": "COLUMNS",
-                    "startIndex": index,
-                    "endIndex": index + 1,
+                    "startIndex": start_column,
+                    "endIndex": end_column,
                 },
-                # Символьная ширина Excel ≈ 7 px на символ плюс поля ячейки.
-                "properties": {"pixelSize": round(width * 7) + 5},
+                "properties": {"pixelSize": pixel_size},
                 "fields": "pixelSize",
             }
         })
 
     if requests:
         _retry_google_request(lambda: worksheet.spreadsheet.batch_update({"requests": requests}))
+
+
+def _format_data_sheet(
+    worksheet,
+    column_count: int,
+    populated_rows: int,
+    column_widths: tuple[int, ...],
+    *,
+    tail_rows: int = DATE_FORMAT_TAIL_ROWS,
+) -> None:
+    """Форматирует лист данных и размеры ячеек по HTML-образцу."""
+    if len(column_widths) < column_count:
+        raise ValueError("Не заданы ширины всех столбцов листа")
+
+    end_row = max(DATA_RANGE_LAST_ROW, populated_rows + tail_rows)
+    current_rows = getattr(worksheet, "row_count", None)
+    current_cols = getattr(worksheet, "col_count", None)
+
+    resize_rows = (
+        max(end_row, current_rows)
+        if isinstance(current_rows, int)
+        else end_row
+    )
+    resize_cols = (
+        max(column_count, current_cols)
+        if isinstance(current_cols, int)
+        else column_count
+    )
+    if (
+        (isinstance(current_rows, int) and resize_rows > current_rows)
+        or (isinstance(current_cols, int) and resize_cols > current_cols)
+    ):
+        worksheet.resize(rows=resize_rows, cols=resize_cols)
+
+    sheet_id = worksheet.id
+    requests = [
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 0,
+                    "endRowIndex": 1,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": column_count,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": _rgb("1B392C"),
+                        "textFormat": {
+                            "fontFamily": "Carlito",
+                            "fontSize": 11,
+                            "bold": True,
+                            "foregroundColor": _rgb("FFFFFF"),
+                        },
+                    }
+                },
+                "fields": (
+                    "userEnteredFormat.backgroundColor,"
+                    "userEnteredFormat.textFormat.fontFamily,"
+                    "userEnteredFormat.textFormat.fontSize,"
+                    "userEnteredFormat.textFormat.bold,"
+                    "userEnteredFormat.textFormat.foregroundColor"
+                ),
+            }
+        },
+        {
+            "repeatCell": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 1,
+                    "endRowIndex": end_row,
+                    "startColumnIndex": 0,
+                    "endColumnIndex": column_count,
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "backgroundColor": _rgb("FFFFFF"),
+                        "textFormat": {
+                            "fontFamily": "Carlito",
+                            "fontSize": 11,
+                        },
+                    }
+                },
+                "fields": (
+                    "userEnteredFormat.backgroundColor,"
+                    "userEnteredFormat.textFormat.fontFamily,"
+                    "userEnteredFormat.textFormat.fontSize"
+                ),
+            }
+        },
+    ]
+    requests.extend([
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "ROWS",
+                    "startIndex": 0,
+                    "endIndex": 1,
+                },
+                "properties": {"pixelSize": 33},
+                "fields": "pixelSize",
+            }
+        },
+        {
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "ROWS",
+                    "startIndex": 1,
+                    "endIndex": end_row,
+                },
+                "properties": {"pixelSize": 17},
+                "fields": "pixelSize",
+            }
+        },
+    ])
+    column_index = 0
+    while column_index < column_count:
+        column_end = column_index + 1
+        while (
+            column_end < column_count
+            and column_widths[column_end] == column_widths[column_index]
+        ):
+            column_end += 1
+        requests.append({
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": column_index,
+                    "endIndex": column_end,
+                },
+                "properties": {"pixelSize": column_widths[column_index]},
+                "fields": "pixelSize",
+            }
+        })
+        column_index = column_end
+
+    _retry_google_request(
+        lambda: worksheet.spreadsheet.batch_update({"requests": requests})
+    )
 
 
 def _apply_date_format(worksheet, column_index: int, first_row: int, last_row: int) -> None:
@@ -467,6 +625,15 @@ def _ensure_writeoffs_sheet(spreadsheet) -> str:
         except gspread.exceptions.APIError:
             existing = None
         if existing and any(any(cell for cell in row) for row in existing):
+            _format_data_sheet(
+                worksheet,
+                len(WRITEOFFS_HEADERS),
+                worksheet.row_count
+                if isinstance(getattr(worksheet, "row_count", None), int)
+                else DATA_RANGE_LAST_ROW,
+                WRITEOFFS_COLUMN_WIDTHS_PX,
+                tail_rows=0,
+            )
             return "kept"
 
     header_range = f"A1:{_col_letter(len(WRITEOFFS_HEADERS))}1"
@@ -476,6 +643,15 @@ def _ensure_writeoffs_sheet(spreadsheet) -> str:
         value_input_option="USER_ENTERED",
     ))
     worksheet.freeze(rows=1)
+    _format_data_sheet(
+        worksheet,
+        len(WRITEOFFS_HEADERS),
+        worksheet.row_count
+        if isinstance(getattr(worksheet, "row_count", None), int)
+        else DATA_RANGE_LAST_ROW,
+        WRITEOFFS_COLUMN_WIDTHS_PX,
+        tail_rows=0,
+    )
     return status
 
 
@@ -570,6 +746,12 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
             operations_worksheet.clear()
             _write_matrix_chunked(operations_worksheet, operations_matrix)
+            _format_data_sheet(
+                operations_worksheet,
+                max(len(row) for row in operations_matrix),
+                len(operations_matrix),
+                OPERATIONS_COLUMN_WIDTHS_PX,
+            )
             operations_worksheet.freeze(rows=2)
             operations_worksheet.set_basic_filter()
             # Дата в столбце B — как в эталоне (dd.mm.yyyy); SUMIFS отчёта
@@ -597,6 +779,12 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
                 pass
             investments_worksheet.clear()
             _write_matrix_chunked(investments_worksheet, investments_matrix)
+            _format_data_sheet(
+                investments_worksheet,
+                max(len(row) for row in investments_matrix),
+                len(investments_matrix),
+                INVESTMENTS_COLUMN_WIDTHS_PX,
+            )
             investments_worksheet.freeze(rows=1)
             investments_worksheet.set_basic_filter()
             _apply_date_format(
