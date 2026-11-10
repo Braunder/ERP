@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 
 from app.config import settings
 from app.models import Investment, SyncLog
+from app.services.report import WRITEOFFS_HEADERS
 
 
 def _make_mock_gspread():
@@ -95,10 +96,86 @@ def test_sync_exports_operations_sheet(client, monkeypatch):
     assert result["investments_synced"] is True
     updates = mock_gspread.service_account.return_value.open_by_key.return_value.worksheet.return_value.update.call_args_list
     assert any(
-        call.args[0][0] == ["Дата", "Сумма", "Комментарий"]
+        len(call.args[0]) >= 2 and call.args[0][0] == ["Дата", "Сумма", "Комментарий"]
         and call.args[0][1][2] == "Инвестиция для синхронизации"
         for call in updates
     )
+
+
+def test_sync_creates_writeoffs_sheet(client, monkeypatch):
+    """Лист «Списания» создаётся при отсутствии и заполняется заголовками."""
+    monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "test_spreadsheet_id")
+    mock_gspread = _make_mock_gspread()
+    monkeypatch.setattr("app.services.sheets.gspread", mock_gspread)
+
+    spreadsheet = mock_gspread.service_account.return_value.open_by_key.return_value
+    data_worksheet = spreadsheet.worksheet.return_value
+
+    def _worksheet(title):
+        if title == "Списания":
+            raise mock_gspread.exceptions.WorksheetNotFound(title)
+        return data_worksheet
+
+    spreadsheet.worksheet = MagicMock(side_effect=_worksheet)
+    writeoffs_worksheet = MagicMock()
+    spreadsheet.add_worksheet = MagicMock(return_value=writeoffs_worksheet)
+
+    client.post("/login", data={"password": "admin"})
+
+    from app.services.sheets import sync_operations_to_sheets
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        result = sync_operations_to_sheets(db)
+    finally:
+        db.close()
+
+    assert result["writeoffs_sheet_title"] == "Списания"
+    assert result["writeoffs_status"] == "created"
+    spreadsheet.add_worksheet.assert_any_call(
+        title="Списания", rows="1000", cols=str(len(WRITEOFFS_HEADERS))
+    )
+    written_headers = writeoffs_worksheet.update.call_args.args[0][0]
+    assert written_headers == WRITEOFFS_HEADERS
+
+
+def test_sync_keeps_existing_writeoffs_sheet(client, monkeypatch):
+    """Данные списаний ведёт заказчик: существующий лист не перетирается."""
+    monkeypatch.setattr(settings, "GOOGLE_SPREADSHEET_ID", "test_spreadsheet_id")
+    mock_gspread = _make_mock_gspread()
+    monkeypatch.setattr("app.services.sheets.gspread", mock_gspread)
+
+    spreadsheet = mock_gspread.service_account.return_value.open_by_key.return_value
+    data_worksheet = spreadsheet.worksheet.return_value
+    data_worksheet.get_values = MagicMock(
+        return_value=[
+            WRITEOFFS_HEADERS,
+            ["19.07.2026", "Съели сами/взяли себе", "Сидр Top Hat", 4, "бут.",
+             "", "", "", "", "2026-07"],
+        ]
+    )
+
+    client.post("/login", data={"password": "admin"})
+
+    from app.services.sheets import sync_operations_to_sheets
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        result = sync_operations_to_sheets(db)
+    finally:
+        db.close()
+
+    assert result["writeoffs_status"] == "kept"
+    spreadsheet.add_worksheet.assert_not_called()
+    # Ни один update не пытался перезаписать строку заголовков «Списаний».
+    written_first_rows = [
+        call.args[0][0]
+        for call in data_worksheet.update.call_args_list
+        if call.args and isinstance(call.args[0][0], list)
+    ]
+    assert WRITEOFFS_HEADERS not in written_first_rows
 
 
 def test_sync_now_without_spreadsheet_id(client, monkeypatch):

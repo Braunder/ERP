@@ -9,7 +9,26 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.config import BASE_DIR, settings
 from app.models import Category, Investment, Operation, SyncLog
-from app.services.report import ReportRow, build_report, report_to_matrix
+from app.services.report import (
+    COLUMN_WIDTHS,
+    DATA_RANGE_LAST_ROW,
+    DATE_NUMBER_FORMAT,
+    DATE_FORMAT_TAIL_ROWS,
+    FREEZE_COLUMNS,
+    FREEZE_ROWS,
+    INVESTMENTS_SHEET_TITLE,
+    MONEY_NUMBER_FORMAT,
+    MONTH_NUMBER_FORMAT,
+    OPERATIONS_SHEET_TITLE,
+    REPORT_SHEET_TITLE,
+    STYLE_PALETTE,
+    WRITEOFFS_HEADERS,
+    WRITEOFFS_SHEET_TITLE,
+    ReportData,
+    build_report,
+    report_layout,
+    report_to_matrix,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +38,6 @@ PAYMENT_METHOD_LABELS = {
     "transfer": "Перевод",
 }
 
-REPORT_SHEET_TITLE = "Отчет"
-OPERATIONS_SHEET_TITLE = "Операции"
-INVESTMENTS_SHEET_TITLE = "Инвестиции"
 
 
 def _safe_iso(value, timespec: str | None = None) -> str:
@@ -122,109 +138,201 @@ def _col_letter(col: int) -> str:
     return result
 
 
-def _format_report_sheet(worksheet, report, matrix: list[list]) -> None:
-    """Форматирует отчёт одним пакетным запросом вместо десятков запросов."""
-    months = report.months
-    num_months = len(months)
-    num_data_rows = len(matrix)
+def _rgb(hex_color: str) -> dict:
+    """Шестнадцатеричный RGB (без alpha) в цвет Google Sheets API."""
+    return {
+        "red": int(hex_color[0:2], 16) / 255,
+        "green": int(hex_color[2:4], 16) / 255,
+        "blue": int(hex_color[4:6], 16) / 255,
+    }
+
+
+# Стили эталонного листа «Отчет»: палитра report.py в запросы Google Sheets API.
+def _style_requests(sheet_id: int, style: str, start: int, end: int, last_col: int) -> list[dict]:
+    """Запросы оформления строк [start, end) в стиле эталона."""
+    spec = STYLE_PALETTE.get(style, {})
+    text_format: dict = {"fontFamily": "Carlito"}
+    fields = ["userEnteredFormat.textFormat.fontFamily"]
+
+    if "bold" in spec:
+        text_format["bold"] = spec["bold"]
+        fields.append("userEnteredFormat.textFormat.bold")
+    if "font_size" in spec:
+        text_format["fontSize"] = spec["font_size"]
+        fields.append("userEnteredFormat.textFormat.fontSize")
+    if "font_color" in spec:
+        text_format["foregroundColor"] = _rgb(spec["font_color"])
+        fields.append("userEnteredFormat.textFormat.foregroundColor")
+
+    user_format: dict = {"textFormat": text_format}
+    if "background" in spec:
+        user_format["backgroundColor"] = _rgb(spec["background"])
+        fields.append("userEnteredFormat.backgroundColor")
+
+    return [{
+        "repeatCell": {
+            "range": {
+                "sheetId": sheet_id,
+                "startRowIndex": start,
+                "endRowIndex": end,
+                "startColumnIndex": 0,
+                "endColumnIndex": last_col,
+            },
+            "cell": {"userEnteredFormat": user_format},
+            "fields": ",".join(fields),
+        }
+    }]
+
+
+def _format_report_sheet(worksheet, report: ReportData, matrix: list[list]) -> None:
+    """Оформляет лист «Отчет» по эталону: палитра, высоты, ширины, freeze B10.
+
+    Объединения ячеек и автофильтр не ставятся — в эталоне их нет, а
+    один столбец на месяц в них не нуждается.
+    """
+    if not matrix:
+        return
+
+    last_col = max(len(row) for row in matrix)
+    num_rows = min(len(matrix), len(report_layout()))
     sheet_id = worksheet.id
     requests: list[dict] = []
+    layout = report_layout()
 
-    # Заголовок и объединение ячеек месяцев.
-    for i, _ in enumerate(months):
-        start_col = 1 + i * 2  # zero-based: B, D, F...
+    # 1. Оформление строк: подряд идущие строки одного стиля — одним запросом.
+    idx = 0
+    while idx < num_rows:
+        style = layout[idx]["style"]
+        end = idx + 1
+        while end < num_rows and layout[end]["style"] == style:
+            end += 1
+        requests.extend(_style_requests(sheet_id, style, idx, end, last_col))
+        idx = end
+
+    # 2. Денежный формат месяцев и итога; заголовки месяцев — формат даты.
+    money_start = None
+    for i in range(num_rows + 1):
+        money = i < num_rows and layout[i]["money"]
+        if money and money_start is None:
+            money_start = i
+        elif not money and money_start is not None:
+            requests.append({
+                "repeatCell": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "startRowIndex": money_start,
+                        "endRowIndex": i,
+                        "startColumnIndex": 1,
+                        "endColumnIndex": last_col,
+                    },
+                    "cell": {"userEnteredFormat": {"numberFormat": {
+                        "type": "NUMBER",
+                        "pattern": MONEY_NUMBER_FORMAT,
+                    }}},
+                    "fields": "userEnteredFormat.numberFormat",
+                }
+            })
+            money_start = None
+
+    if num_rows >= 3:
         requests.append({
-            "mergeCells": {
+            "repeatCell": {
                 "range": {
                     "sheetId": sheet_id,
-                    "startRowIndex": 0,
-                    "endRowIndex": 1,
-                    "startColumnIndex": start_col,
-                    "endColumnIndex": start_col + 2,
+                    "startRowIndex": 2,
+                    "endRowIndex": 3,
+                    "startColumnIndex": 1,
+                    "endColumnIndex": max(last_col - 1, 1),
                 },
-                "mergeType": "MERGE_ALL",
+                "cell": {"userEnteredFormat": {"numberFormat": {
+                    "type": "DATE",
+                    "pattern": MONTH_NUMBER_FORMAT,
+                }}},
+                "fields": "userEnteredFormat.numberFormat",
             }
         })
 
-    last_col = 1 + num_months * 2
+    # 3. Высоты строк: Excel оперирует пунктами, Sheets — пикселями (1pt = 4/3 px).
+    height_start = None
+    for i in range(num_rows + 1):
+        height = layout[i]["height"] if i < num_rows else None
+        previous = layout[height_start]["height"] if height_start is not None else None
+        if height_start is not None and height != previous:
+            requests.append({
+                "updateDimensionProperties": {
+                    "range": {
+                        "sheetId": sheet_id,
+                        "dimension": "ROWS",
+                        "startIndex": height_start,
+                        "endIndex": i,
+                    },
+                    "properties": {"pixelSize": round(previous * 4 / 3)},
+                    "fields": "pixelSize",
+                }
+            })
+            height_start = i if height is not None else None
+        elif height_start is None and height is not None:
+            height_start = i
+        elif height is None and height_start is not None:
+            height_start = None
+
+    # 4. Закрепление области B10 и ширины столбцов A и B.
     requests.append({
-        "repeatCell": {
-            "range": {"sheetId": sheet_id, "startRowIndex": 0, "endRowIndex": min(2, num_data_rows), "startColumnIndex": 0, "endColumnIndex": last_col},
-            "cell": {"userEnteredFormat": {
-                "textFormat": {"bold": True},
-                "backgroundColor": {"red": 0.85, "green": 0.85, "blue": 0.85},
-                "horizontalAlignment": "CENTER",
-            }},
-            "fields": "userEnteredFormat(textFormat.bold,backgroundColor,horizontalAlignment)",
+        "updateSheetProperties": {
+            "properties": {
+                "sheetId": sheet_id,
+                "gridProperties": {
+                    "frozenRowCount": FREEZE_ROWS,
+                    "frozenColumnCount": FREEZE_COLUMNS,
+                },
+            },
+            "fields": "gridProperties.frozenRowCount,gridProperties.frozenColumnCount",
         }
     })
 
-    # Числовые форматы столбцов сумм и процентов.
-    for i in range(num_months):
-        sum_col = 1 + i * 2
-        pct_col = sum_col + 1
-        if num_data_rows > 2:
-            requests.append({
-                "repeatCell": {
-                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": sum_col, "endColumnIndex": sum_col + 1},
-                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "NUMBER", "pattern": "#,##0.00 ₽"}}},
-                    "fields": "userEnteredFormat.numberFormat",
-                }
-            })
-            requests.append({
-                "repeatCell": {
-                    "range": {"sheetId": sheet_id, "startRowIndex": 2, "endRowIndex": num_data_rows, "startColumnIndex": pct_col, "endColumnIndex": pct_col + 1},
-                    "cell": {"userEnteredFormat": {"numberFormat": {"type": "PERCENT", "pattern": "0.00%"}}},
-                    "fields": "userEnteredFormat.numberFormat",
-                }
-            })
-
-    # Сгруппировать подряд идущие строки с одинаковым стилем в один запрос.
-    flat_rows: list[ReportRow] = []
-    def collect(row: ReportRow) -> None:
-        flat_rows.append(row)
-        for sub in row.subrows:
-            collect(sub)
-    for row in report.rows:
-        collect(row)
-
-    def style_key(row: ReportRow) -> tuple:
-        return (bool(row.bold), row.background, bool(row.section in {"direct", "overhead"} and row.level >= 2))
-
-    idx = 0
-    while idx < len(flat_rows):
-        key = style_key(flat_rows[idx])
-        end = idx + 1
-        while end < len(flat_rows) and style_key(flat_rows[end]) == key:
-            end += 1
-        bold, background, italic = key
-        fmt: dict = {"textFormat": {"bold": bold}}
-        fields = ["userEnteredFormat.textFormat.bold"]
-        if background == "yellow":
-            fmt["backgroundColor"] = {"red": 1.0, "green": 0.95, "blue": 0.8}
-            fields.append("userEnteredFormat.backgroundColor")
-        elif background == "blue":
-            fmt["backgroundColor"] = {"red": 0.85, "green": 0.92, "blue": 1.0}
-            fields.append("userEnteredFormat.backgroundColor")
-        elif background == "green":
-            fmt["backgroundColor"] = {"red": 0.85, "green": 1.0, "blue": 0.85}
-            fields.append("userEnteredFormat.backgroundColor")
-        if italic:
-            fmt["textFormat"]["italic"] = True
-            fields.append("userEnteredFormat.textFormat.italic")
+    for letter, width in COLUMN_WIDTHS.items():
+        index = ord(letter) - 65
         requests.append({
-            "repeatCell": {
-                "range": {"sheetId": sheet_id, "startRowIndex": idx + 2, "endRowIndex": end + 2, "startColumnIndex": 0, "endColumnIndex": last_col},
-                "cell": {"userEnteredFormat": fmt},
-                "fields": ",".join(fields),
+            "updateDimensionProperties": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "dimension": "COLUMNS",
+                    "startIndex": index,
+                    "endIndex": index + 1,
+                },
+                # Символьная ширина Excel ≈ 7 px на символ плюс поля ячейки.
+                "properties": {"pixelSize": round(width * 7) + 5},
+                "fields": "pixelSize",
             }
         })
-        idx = end
 
-    # Автоподбор ширины столбцов — тоже в том же batchUpdate.
-    requests.append({"autoResizeDimensions": {"dimensions": {"sheetId": sheet_id, "dimension": "COLUMNS", "startIndex": 0, "endIndex": last_col}}})
     if requests:
         _retry_google_request(lambda: worksheet.spreadsheet.batch_update({"requests": requests}))
+
+
+def _apply_date_format(worksheet, column_index: int, first_row: int, last_row: int) -> None:
+    """Ставит формат dd.mm.yyyy на столбец дат листа данных."""
+    if last_row < first_row:
+        return
+    _retry_google_request(lambda: worksheet.spreadsheet.batch_update({
+        "requests": [{
+            "repeatCell": {
+                "range": {
+                    "sheetId": worksheet.id,
+                    "startRowIndex": first_row - 1,
+                    "endRowIndex": last_row,
+                    "startColumnIndex": column_index - 1,
+                    "endColumnIndex": column_index,
+                },
+                "cell": {"userEnteredFormat": {"numberFormat": {
+                    "type": "DATE",
+                    "pattern": DATE_NUMBER_FORMAT,
+                }}},
+                "fields": "userEnteredFormat.numberFormat",
+            }
+        }]
+    }))
+
 
 
 def _write_matrix_chunked(worksheet, matrix: list[list], *, chunk_size: int = 400) -> None:
@@ -331,8 +439,49 @@ def _build_investments_matrix(db: Session) -> list[list[object]]:
     ]
 
 
+def _ensure_writeoffs_sheet(spreadsheet) -> str:
+    """Гарантирует существование листа «Списания», не трогая данные заказчика.
+
+    Списания (съели сами / неуточненные / подарки) ведёт заказчик вручную,
+    в базе ERP их пока нет. Лист обязателен: строки 46 и 53 отчёта считают
+    его через SUMIFS, и без листа формулы дали бы #REF!.
+
+    Возвращает статус: "created" — лист создан и заполнен заголовками,
+    "seeded" — лист был пуст, записаны только заголовки,
+    "kept" — лист существует с данными, не тронут.
+    """
+    status = "seeded"
+    try:
+        worksheet = spreadsheet.worksheet(WRITEOFFS_SHEET_TITLE)
+    except gspread.exceptions.WorksheetNotFound:
+        worksheet = spreadsheet.add_worksheet(
+            title=WRITEOFFS_SHEET_TITLE,
+            rows=str(DATA_RANGE_LAST_ROW),
+            cols=str(len(WRITEOFFS_HEADERS)),
+        )
+        status = "created"
+
+    if status != "created":
+        try:
+            existing = worksheet.get_values()
+        except gspread.exceptions.APIError:
+            existing = None
+        if existing and any(any(cell for cell in row) for row in existing):
+            return "kept"
+
+    header_range = f"A1:{_col_letter(len(WRITEOFFS_HEADERS))}1"
+    _retry_google_request(lambda: worksheet.update(
+        [WRITEOFFS_HEADERS],
+        range_name=header_range,
+        value_input_option="USER_ENTERED",
+    ))
+    worksheet.freeze(rows=1)
+    return status
+
+
 def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) -> dict:
     """Выгружает P&L, операции и инвестиции в Google Sheets.
+
 
     Выгрузки независимы: ошибка одной не блокирует остальные. Если любая
     из них завершилась ошибкой, исключение поднимается после всех попыток.
@@ -354,7 +503,9 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
     try:
         report = build_report(db)
-        report_matrix = report_to_matrix(report)
+        report_matrix = report_to_matrix(
+            report, separator=settings.GOOGLE_FORMULA_SEPARATOR
+        )
     except Exception as exc:  # noqa: BLE001
         logger.exception("Не удалось построить отчёт P&L")
         errors.append(f"Отчёт P&L: {exc}")
@@ -374,6 +525,18 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
     report_synced = False
     operations_synced = False
     investments_synced = False
+    writeoffs_status = None
+
+    # Лист «Списания» готовим до отчёта: его строки 46 и 53 ссылаются на
+    # этот лист, и при отсутствии листа SUMIFS дали бы #REF!.
+    try:
+        writeoffs_status = _ensure_writeoffs_sheet(spreadsheet)
+    except gspread.exceptions.APIError as exc:
+        logger.exception("Ошибка Google Sheets API при подготовке листа списаний")
+        errors.append(f"Списания: ошибка Google Sheets API: {exc}")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ошибка при подготовке листа списаний")
+        errors.append(f"Списания: {exc}")
 
     # Записываем отчёт независимо от результата подготовки операций.
     if report is not None and report_matrix is not None:
@@ -409,6 +572,12 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
             _write_matrix_chunked(operations_worksheet, operations_matrix)
             operations_worksheet.freeze(rows=2)
             operations_worksheet.set_basic_filter()
+            # Дата в столбце B — как в эталоне (dd.mm.yyyy); SUMIFS отчёта
+            # сравнивает её с датой месяца из строки 3, поэтому это должны
+            # быть настоящие даты, а не текст.
+            _apply_date_format(
+                operations_worksheet, 2, 3, len(operations_matrix) + DATE_FORMAT_TAIL_ROWS
+            )
             operations_synced = True
         except gspread.exceptions.APIError as exc:
             logger.exception("Ошибка Google Sheets API при записи операций")
@@ -430,6 +599,9 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
             _write_matrix_chunked(investments_worksheet, investments_matrix)
             investments_worksheet.freeze(rows=1)
             investments_worksheet.set_basic_filter()
+            _apply_date_format(
+                investments_worksheet, 1, 2, len(investments_matrix) + DATE_FORMAT_TAIL_ROWS
+            )
             investments_synced = True
         except gspread.exceptions.APIError as exc:
             logger.exception("Ошибка Google Sheets API при записи инвестиций")
@@ -446,13 +618,15 @@ def sync_operations_to_sheets(db: Session, spreadsheet_id: str | None = None) ->
 
     result = {
         "synced": operations_count if operations_synced else 0,
-        "report_rows": max(0, len(report_matrix) - 2) if report_matrix is not None else 0,
+        "report_rows": len(report_matrix) if report_matrix is not None else 0,
         "operations_rows": operations_count if operations_synced else 0,
         "spreadsheet_id": spreadsheet_id,
         "sheet_title": REPORT_SHEET_TITLE,
         "operations_sheet_title": OPERATIONS_SHEET_TITLE,
         "investments_rows": investments_count if investments_synced else 0,
         "investments_sheet_title": INVESTMENTS_SHEET_TITLE,
+        "writeoffs_sheet_title": WRITEOFFS_SHEET_TITLE,
+        "writeoffs_status": writeoffs_status,
         "months": report.months if report is not None else [],
         "report_synced": report_synced,
         "operations_synced": operations_synced,

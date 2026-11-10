@@ -46,6 +46,8 @@ def test_full_workflow(client):
             "amount": "5000.00",
             "comment": "E2E лавка",
             "payment_method": "cash",
+            # Категория «Лавка» требует указать количество гостей.
+            "guests_count": 5,
         },
     )
     assert income_response.status_code == 201
